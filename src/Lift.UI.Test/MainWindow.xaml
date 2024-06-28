@@ -1,0 +1,21 @@
+﻿<liftui:Window
+    x:Class="Lift.UI.Test.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:liftui="https://github.com/pchuan98/Lift.UI"
+    xmlns:local="clr-namespace:Lift.UI.Test"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:propertyGrid1="clr-namespace:Lift.UI.V2.Controls.PropertyGrid;assembly=Lift.UI"
+    Title="MainWindow"
+    Width="600"
+    Height="650"
+    SystemBackdropType="Tabbed"
+    Topmost="True"
+    mc:Ignorable="d">
+    <UniformGrid>
+        <propertyGrid1:PropertyGrid x:Name="LiftUiPropertyGrid" MaxTitleWidth="400" />
+        <!--<propertyGrid:PropertyGrid x:Name="PdPropertyGrid" Style="{StaticResource PropertyGrid.Base}" />-->
+
+    </UniformGrid>
+</liftui:Window>
