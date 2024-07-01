@@ -21,7 +21,8 @@ namespace Test.ImageExtend
 
             DataContext = MainViewModel;
 
-            var img = Cv2.ImRead(@"C:\Users\Administrator\Pictures\Saved Pictures\zjx.jpg");
+            var img = Cv2.ImRead(@"..\..\..\Image\1.bmp");
+            //var img = Cv2.ImRead(@"C:\Users\Administrator\Pictures\Saved Pictures\zjx.jpg");
             var source = img.ToWriteableBitmap();
             ImageEx.ImageSource = source;
 

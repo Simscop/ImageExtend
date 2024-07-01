@@ -9,9 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lift.UI.Core", "Lift.UI.Cor
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lift.UI.Test", "Lift.UI.Test\Lift.UI.Test.csproj", "{8050F7D9-7611-406A-88C7-A537AAF641AC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test.ImageExtend", "Test.ImageExtend\Test.ImageExtend.csproj", "{33FC72F6-7015-4A0C-AD30-F0244B46D1C5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test.ImageExtend", "Test.ImageExtend\Test.ImageExtend.csproj", "{33FC72F6-7015-4A0C-AD30-F0244B46D1C5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WpfApp1_Arrange&Measure", "WpfApp1\WpfApp1_Arrange&Measure.csproj", "{9795131B-ED10-46DA-8126-FA84D1AA3E84}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WpfApp1", "WpfApp1\WpfApp1.csproj", "{9795131B-ED10-46DA-8126-FA84D1AA3E84}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

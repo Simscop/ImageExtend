@@ -4,6 +4,8 @@ using System.Windows.Shapes;
 using Lift.UI.Tools.Extension;
 using InkCanvas = System.Windows.Controls.InkCanvas;
 
+//自定义的形状框架
+
 namespace Test.ImageExtend.ImageEx.ShapeEx;
 
 // todo 线宽改成显示像素，而不是实际宽度
@@ -37,6 +39,7 @@ public abstract class ShapeBase : Shape
 
     /// <summary>
     /// 切换选中状态
+    /// 触发OnSelectedChanged事件
     /// </summary>
     public virtual void SetSelected(InkCanvas? canvas)
     {

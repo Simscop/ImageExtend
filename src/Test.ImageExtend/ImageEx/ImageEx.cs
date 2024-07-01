@@ -1,21 +1,25 @@
-﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
+﻿using Lift.UI.Tools.Extension;
 using Microsoft.Xaml.Behaviors;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Lift.UI.Tools.Extension;
 using Test.ImageExtend.ImageEx.ShapeEx;
 
 namespace Test.ImageExtend.ImageEx;
 
 /// <summary>
 /// 关于浏览相关的行为
+/// 图像缩放&移动
 /// </summary>
 public class ImageExViewerBehavior : Behavior<ImageEx>
 {
+    /// <summary>
+    /// 将鼠标滚轮、鼠标移动、鼠标按下和松开的事件绑定到 AssociatedObject 的相关控件
+    /// </summary>
     protected override void OnAttached()
     {
         AssociatedObject.MainPanel!.MouseWheel += OnZoomChanged;
@@ -24,6 +28,9 @@ public class ImageExViewerBehavior : Behavior<ImageEx>
         AssociatedObject.Scroll!.PreviewMouseUp += OnMoveStop;
     }
 
+    /// <summary>
+    /// 解除事件绑定
+    /// </summary>
     protected override void OnDetaching()
     {
         AssociatedObject.MainPanel!.MouseWheel -= OnZoomChanged;
@@ -32,6 +39,11 @@ public class ImageExViewerBehavior : Behavior<ImageEx>
         AssociatedObject.Scroll!.PreviewMouseUp -= OnMoveStop;
     }
 
+    /// <summary>
+    /// 处理鼠标滚轮事件来实现图像的缩放。缩放比例根据鼠标滚轮的滚动方向和当前缩放级别来调整
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void OnZoomChanged(object sender, MouseWheelEventArgs e)
     {
         var oldScale = AssociatedObject.ImagePanelScale;
@@ -72,17 +84,32 @@ public class ImageExViewerBehavior : Behavior<ImageEx>
 
     private Point _cursor = new(-1, -1);
 
-
+    /// <summary>
+    /// 拖拽开始，获取鼠标起始位置
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void OnMoveStart(object sender, MouseButtonEventArgs e)
     {
         _cursor = e.GetPosition(AssociatedObject);
     }
 
+    /// <summary>
+    /// 拖拽结束，获取鼠标起始位置
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void OnMoveStop(object sender, MouseButtonEventArgs e)
     {
         _cursor = new(-1, -1);
     }
 
+    /// <summary>
+    /// 鼠标拖动事件
+    /// 计算偏移量并调整滚动视图的位置
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void OnMoveChanged(object sender, MouseEventArgs e)
     {
         if (e.LeftButton != MouseButtonState.Pressed) return;
@@ -97,20 +124,28 @@ public class ImageExViewerBehavior : Behavior<ImageEx>
     }
 }
 
+/// <summary>
+/// 处理在图像上绘制形状的功能
+/// </summary>
 public class ImageExDrawBehavior : Behavior<ImageEx>
 {
+    /// <summary>
+    /// 将 Loaded 事件绑定到 AssociatedObject
+    /// </summary>
     protected override void OnAttached()
     {
         AssociatedObject.Loaded += OnLoaded;
     }
 
+    /// <summary>
+    /// 解除事件绑定
+    /// </summary>
     protected override void OnDetaching()
     {
         AssociatedObject.Canvas!.PreviewMouseMove -= OnCanvasPreviewMouseMove;
         AssociatedObject.Canvas!.PreviewMouseDown -= OnCanvasPreviewMouseDown;
         AssociatedObject.Canvas!.MouseLeave -= OnCanvasMouseLeave;
         AssociatedObject.MainPanel!.PreviewMouseUp -= OnCanvasPreviewMouseUp;
-
 
         AssociatedObject.Loaded -= OnLoaded;
     }
@@ -125,8 +160,19 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
 
     private bool _flag = false;
 
+    /// <summary>
+    /// 处理在画布上的鼠标事件以绘制形状
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void OnCanvasMouseLeave(object sender, MouseEventArgs e) { }
 
+    /// <summary>
+    /// 处理在画布上的鼠标事件以绘制形状
+    /// 松开时确定最终形状
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void OnCanvasPreviewMouseUp(object sender, MouseButtonEventArgs e)
     {
         if (!_flag) return;
@@ -166,6 +212,12 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
             ?.Invoke(new Rect(location.X, location.Y, marker.Width, marker.Height));
     }
 
+    /// <summary>
+    /// 处理在画布上的鼠标事件以绘制形状
+    /// 按下时记录起始点
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void OnCanvasPreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (e.LeftButton == MouseButtonState.Pressed
@@ -174,6 +226,12 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         AssociatedObject.ShapePreviewer!.PointStart = e.GetPosition(AssociatedObject.Canvas);
     }
 
+    /// <summary>
+    /// 处理在画布上的鼠标事件以绘制形状
+    /// 移动时更新预览形状
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void OnCanvasPreviewMouseMove(object sender, MouseEventArgs e)
     {
         if (e.LeftButton == MouseButtonState.Pressed
@@ -189,7 +247,7 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
     }
 
     /// <summary>
-    /// 
+    /// 验证鼠标位置是否在画布范围内
     /// </summary>
     /// <param name="e"></param>
     /// <returns>
@@ -206,7 +264,9 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
     }
 }
 
-
+/// <summary>
+/// 自定义的 WPF 控件，集成了图像显示、缩放、移动和标记功能
+/// </summary>
 [TemplatePart(Name = NamePartMainPanel, Type = typeof(Panel))]
 [TemplatePart(Name = NamePartScrollView, Type = typeof(ScrollViewer))]
 [TemplatePart(Name = NamePartViewBox, Type = typeof(Viewbox))]
@@ -215,6 +275,7 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
 [TemplatePart(Name = NamePartShapeMarkder, Type = typeof(ShapeBase))]
 public class ImageEx : ContentControl
 {
+    //定义控件模板中的各种部分，包括主面板、滚动视图、视图框、画布和形状预览器、标记器。
     #region Name
 
     public const string NamePartMainPanel = "PART_MAIN_PANEL";
@@ -247,6 +308,7 @@ public class ImageEx : ContentControl
 
     #endregion
 
+    //定义删除标记和缩放到当前标记的命令。
     #region Commands
 
     /// <summary>
@@ -266,6 +328,7 @@ public class ImageEx : ContentControl
 
     #endregion
 
+    //定义标记变化和光标变化的事件
     #region Events
 
     /// <summary>
@@ -281,12 +344,19 @@ public class ImageEx : ContentControl
 
     private readonly List<Behavior> _behaviors = new();
 
+    /// <summary>
+    /// 初始化行为类并添加到 _behaviors 列表中。为命令绑定处理程序
+    /// </summary>
     static ImageEx()
     {
         DefaultStyleKeyProperty.OverrideMetadata(typeof(ImageEx)
             , new FrameworkPropertyMetadata(typeof(ImageEx)));
     }
 
+    /// <summary>
+    /// 初始化行为类并添加到 _behaviors 列表中。为命令绑定处理程序
+    /// </summary>
+    /// <exception cref="NotImplementedException"></exception>
     public ImageEx()
     {
         _behaviors.Add(new ImageExViewerBehavior());
@@ -325,7 +395,9 @@ public class ImageEx : ContentControl
         }));
     }
 
-
+    /// <summary>
+    /// 找到模板中的各部分并将行为附加到控件上
+    /// </summary>
     public override void OnApplyTemplate()
     {
         base.OnApplyTemplate();
@@ -356,6 +428,10 @@ public class ImageEx : ContentControl
         OnCursorChanged?.Invoke((x, y, c));
     }
 
+    /// <summary>
+    /// 在控件渲染时更新图像信息和平铺图像
+    /// </summary>
+    /// <param name="drawingContext"></param>
     protected override void OnRender(DrawingContext drawingContext)
     {
         base.OnRender(drawingContext);
@@ -363,6 +439,10 @@ public class ImageEx : ContentControl
         UpdateImageInfo();
     }
 
+    /// <summary>
+    /// 在控件大小变化时更新图像信息和平铺图像
+    /// </summary>
+    /// <param name="sizeInfo"></param>
     protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
     {
         base.OnRenderSizeChanged(sizeInfo);
@@ -371,6 +451,13 @@ public class ImageEx : ContentControl
         TileImage();
     }
 
+    #region 依赖属性
+
+    // 定义图像源（ImageSource）、形状集合（ShapeCollection）、标记菜单（MarkerMenu）和图像面板缩放（ImagePanelScale）
+
+    /// <summary>
+    /// 设置和获取控件的图像源，并在图像源变化时更新图像信息和平铺图像
+    /// </summary>
     public static readonly DependencyProperty ImageSourceProperty = DependencyProperty.Register(
         nameof(ImageSource), typeof(ImageSource), typeof(ImageEx), new PropertyMetadata(null,
             (o, p) =>
@@ -398,9 +485,11 @@ public class ImageEx : ContentControl
         set => SetValue(ImageSourceProperty, value);
     }
 
-    public static readonly DependencyProperty ShapeCollectionProperty = DependencyProperty.Register(
-        nameof(ShapeCollection), typeof(ObservableCollection<ShapeBase>), typeof(ImageEx), new PropertyMetadata(new ObservableCollection<ShapeBase>(), OnShapeChanged));
-
+    /// <summary>
+    /// 设置和获取形状集合，并在形状集合变化时更新画布上的形状
+    /// </summary>
+    /// <param name="d"></param>
+    /// <param name="e"></param>
     private static void OnShapeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is not ImageEx ex || ex.Canvas is null) return;
@@ -420,9 +509,16 @@ public class ImageEx : ContentControl
         set => SetValue(ShapeCollectionProperty, value);
     }
 
+    public static readonly DependencyProperty ShapeCollectionProperty = DependencyProperty.Register(
+    nameof(ShapeCollection), typeof(ObservableCollection<ShapeBase>), typeof(ImageEx), new PropertyMetadata(new ObservableCollection<ShapeBase>(), OnShapeChanged));
+
+
     public static readonly DependencyProperty MarkerMenuProperty = DependencyProperty.Register(
         nameof(MarkerMenu), typeof(ContextMenu), typeof(ImageEx), new PropertyMetadata(default(ContextMenu)));
 
+    /// <summary>
+    /// 设置和获取标记菜单
+    /// </summary>
     public ContextMenu MarkerMenu
     {
         get => (ContextMenu)GetValue(MarkerMenuProperty);
@@ -438,6 +534,11 @@ public class ImageEx : ContentControl
     public static readonly DependencyProperty ImagePanelScaleProperty = DependencyProperty.Register(
         nameof(ImagePanelScale), typeof(double), typeof(ImageEx), new PropertyMetadata((double)-1, OnImagePanelScale));
 
+    /// <summary>
+    /// 设置和获取图像面板的缩放比例，并在缩放比例变化时更新视图框的大小
+    /// </summary>
+    /// <param name="d"></param>
+    /// <param name="e"></param>
     private static void OnImagePanelScale(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is not ImageEx ex || e.NewValue is not double n || n <= 0) return;
@@ -458,6 +559,8 @@ public class ImageEx : ContentControl
 
     #endregion
 
+    #endregion
+
     /// <summary>
     /// 平铺图案
     /// </summary>
@@ -471,6 +574,9 @@ public class ImageEx : ContentControl
         Scroll.ScrollToHorizontalOffset(0);
     }
 
+    /// <summary>
+    /// 更新图像信息
+    /// </summary>
     private void UpdateImageInfo()
     {
         if (ImageSource is null) return;
@@ -481,9 +587,13 @@ public class ImageEx : ContentControl
         DefaultImageSize = (ImageSource.Width, ImageSource.Height);
     }
 
+    /// <summary>
+    /// 双击事件
+    /// todo
+    /// </summary>
+    /// <param name="e"></param>
     protected override void OnMouseDoubleClick(MouseButtonEventArgs e)
     {
-        // todo 双击事件
         var pos = e.GetPosition(Canvas);
     }
 }

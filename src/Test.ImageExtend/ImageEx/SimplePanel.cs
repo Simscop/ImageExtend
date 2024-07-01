@@ -3,6 +3,8 @@ using System.Windows.Controls;
 
 namespace Test.ImageExtend.ImageEx;
 
+//实现控件布局（缩放等）
+
 public class SimplePanel : Panel
 {
     /// <summary>
