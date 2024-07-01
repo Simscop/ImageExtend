@@ -59,6 +59,7 @@
                 x:Name="ImageViewer"
                 ShowImgMap="True"
                 ShowToolBar="True" />
+            
 
         </Border>
 

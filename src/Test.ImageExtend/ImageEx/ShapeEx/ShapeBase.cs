@@ -1,7 +1,8 @@
-﻿using System.Windows;
+﻿using Lift.UI.Tools.Extension;
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using Lift.UI.Tools.Extension;
+//using Test.ImageExtend.Extension;
 using InkCanvas = System.Windows.Controls.InkCanvas;
 
 //自定义的形状框架
