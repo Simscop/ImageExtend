@@ -1,17 +1,15 @@
-﻿using System.Drawing;
-using System;
-using OpenCvSharp;
+﻿using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
-using Test.ImageExtend.ViewModels;
-using System.Drawing.Imaging;
 using System.Windows.Media.Imaging;
+using Test.ImageExtend.ViewModels;
+using System.Windows;
 
 namespace Test.ImageExtend
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Lift.UI.Controls.Window
+    public partial class MainWindow : System.Windows.Window
     {
         public  MainViewModel MainViewModel = new();
 

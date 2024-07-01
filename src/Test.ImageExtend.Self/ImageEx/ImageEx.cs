@@ -1,4 +1,4 @@
-﻿using Lift.UI.Tools.Extension;
+﻿//using Lift.UI.Tools.Extension;
 using Microsoft.Xaml.Behaviors;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -7,7 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-//using Test.ImageExtend.Extension;
+using Test.ImageExtend.Extension;
 using Test.ImageExtend.ImageEx.ShapeEx;
 
 namespace Test.ImageExtend.ImageEx;
