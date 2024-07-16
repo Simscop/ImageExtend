@@ -5,8 +5,6 @@ using System.Windows.Shapes;
 using Test.ImageExtend.Extension;
 using InkCanvas = System.Windows.Controls.InkCanvas;
 
-//自定义的形状框架
-
 namespace Test.ImageExtend.ImageEx.ShapeEx;
 
 // todo 线宽改成显示像素，而不是实际宽度
@@ -24,12 +22,12 @@ public abstract class ShapeBase : Shape
     public Point PointEnd { get; set; }
 
     /// <summary>
-    /// 绘制图像
+    /// 在指定的 InkCanvas 上绘制形状
     /// </summary>
     public abstract void Draw(InkCanvas canvas);
 
     /// <summary>
-    /// 清除画板
+    ///清除画板上的形状
     /// </summary>
     public virtual void Clear(InkCanvas canvas) => canvas.Children.Remove(this);
 
@@ -60,7 +58,8 @@ public abstract class ShapeBase : Shape
     /// <summary>
     /// 切换选中状态
     /// </summary>
-    public virtual void SetSelected() => SetSelected(Parent as InkCanvas);
+    public virtual void SetSelected() 
+        => SetSelected(Parent as InkCanvas);
 
     /// <summary>
     /// 当选中后
@@ -83,14 +82,15 @@ public abstract class ShapeBase : Shape
     public double ThicknessSelected { get; set; } = 1;
 
     /// <summary>
-    /// 
+    /// 鼠标放上去和选择后线宽
     /// </summary>
     public double ThicknessMouseOverAndSelected { get; set; } = 1;
 
     /// <summary>
-    /// 
+    /// 构造函数
     /// </summary>
-    protected ShapeBase() : base() => InitComponent();
+    protected ShapeBase() : base() 
+        => InitComponent();
 
     /// <summary>
     /// initialize the components
@@ -110,7 +110,7 @@ public abstract class ShapeBase : Shape
     }
 
     /// <summary>
-    /// 刷新图案
+    /// 刷新形状的尺寸和位置
     /// </summary>
     public virtual void Refresh()
     {
@@ -124,6 +124,9 @@ public abstract class ShapeBase : Shape
         InkCanvas.SetTop(this, position.Y);
     }
 
+    /// <summary>
+    /// 刷新形状的线条宽度和颜色
+    /// </summary>
     protected virtual void RefreshStrokeThickness()
     {
         Fill = IsSelected
@@ -140,8 +143,15 @@ public abstract class ShapeBase : Shape
 
     }
 
+    /// <summary>
+    /// 抽象方法—克隆形状
+    /// </summary>
+    /// <returns></returns>
     internal abstract ShapeBase Clone();
 
+    /// <summary>
+    /// 抽象属性—矩形的几何形状 
+    /// </summary>
     protected override Geometry DefiningGeometry
         => throw new NotImplementedException();
 
@@ -157,8 +167,8 @@ public class RectangleShape : ShapeBase
 
     public override void Draw(InkCanvas canvas)
     {
-        Refresh();
-        canvas.Children.Add(this);
+        Refresh();//会刷新形状的尺寸和位置
+        canvas.Children.Add(this);//添加到画布
     }
 
     internal override RectangleShape Clone()
@@ -176,3 +186,5 @@ public class RectangleShape : ShapeBase
         return clone;
     }
 }
+
+

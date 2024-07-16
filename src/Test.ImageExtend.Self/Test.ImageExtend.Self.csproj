@@ -9,11 +9,23 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Image\1.bmp" />
+    <None Remove="Image\1_32bit.bmp" />
+    <None Remove="Image\2_24bit.jpg" />
+    <None Remove="Image\3_16bit.tif" />
+    <None Remove="Image\4_16bit_S.TIF" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Image\1.bmp">
+    <Content Include="Image\1_32bit.bmp">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Image\2_24bit.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Image\3_16bit.tif">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Image\4_16bit_S.TIF">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
@@ -25,6 +37,12 @@
     <PackageReference Include="OpenCvSharp4.WpfExtensions" Version="4.10.0.20240616" />
     <PackageReference Include="OxyPlot.SkiaSharp.Wpf" Version="2.1.2" />
     <PackageReference Include="System.Drawing.Common" Version="8.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="ImageAdjust.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
 
 </Project>

@@ -12,12 +12,14 @@
     Height="450"
     d:DataContext="{d:DesignInstance vm:MainViewModel}"
     mc:Ignorable="d">
+
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
+        <!--  标记上右键弹窗——accquire/scale/delete  -->
         <Border
             Grid.Column="0"
             Margin="5"
@@ -26,9 +28,11 @@
             CornerRadius="5">
 
             <imageEx:ImageEx
-                x:Name="ImageEx"
+                x:Name="ImageExImage"
                 Margin="5"
-                HorizontalAlignment="Stretch">
+                HorizontalAlignment="Stretch"
+                ImageSource="{Binding Frame}">
+
                 <imageEx:ImageEx.MarkerMenu>
                     <ContextMenu>
                         <MenuItem Command="{Binding AcquireRamanDataCommand}" Header="Acquire" />
@@ -42,6 +46,7 @@
                             Header="Delete" />
                     </ContextMenu>
                 </imageEx:ImageEx.MarkerMenu>
+
             </imageEx:ImageEx>
 
         </Border>
@@ -53,14 +58,7 @@
             BorderThickness="1"
             CornerRadius="5">
 
-            <!--<liftui:ImageViewer
-                x:Name="ImageViewer"
-                ShowImgMap="True"
-                ShowToolBar="True" />-->
-            <imageEx:ImageEx x:Name="ImageViewer" />
-
+            <imageEx:ImageEx x:Name="ImageViewer" ImageSource="Image/1_32bit.bmp" />
         </Border>
-
-
     </Grid>
 </Window>

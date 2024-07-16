@@ -1,7 +1,11 @@
-﻿//using Lift.UI.Tools.Extension;
+﻿
+using Microsoft.Win32;
 using Microsoft.Xaml.Behaviors;
+using OpenCvSharp;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -9,8 +13,14 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Test.ImageExtend.Extension;
 using Test.ImageExtend.ImageEx.ShapeEx;
+using Test.ImageExtend.Self;
+using Point = System.Windows.Point;
+using Rect = System.Windows.Rect;
+using Size = System.Windows.Size;
 
 namespace Test.ImageExtend.ImageEx;
+
+#region begavior
 
 /// <summary>
 /// 关于浏览相关的行为
@@ -80,8 +90,6 @@ public class ImageExViewerBehavior : Behavior<ImageEx>
         AssociatedObject.Scroll!.ScrollToHorizontalOffset(AssociatedObject.Scroll.HorizontalOffset + offset.X);
         AssociatedObject.Scroll!.ScrollToVerticalOffset(AssociatedObject.Scroll.VerticalOffset + offset.Y);
     }
-
-    private DateTime _flag = DateTime.Now;
 
     private Point _cursor = new(-1, -1);
 
@@ -188,7 +196,6 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         // valid size
         var min = Math.Min(AssociatedObject.ShapePreviewer!.Height, AssociatedObject.ShapePreviewer!.Width);
         var threshold = Math.Min(AssociatedObject.ImageSource!.Height, AssociatedObject.ImageSource!.Width) * 0.02;
-
         if (threshold > min) return;
 
         // render
@@ -224,7 +231,7 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         if (e.LeftButton == MouseButtonState.Pressed
             || e.RightButton != MouseButtonState.Pressed) return;
 
-        AssociatedObject.ShapePreviewer!.PointStart = e.GetPosition(AssociatedObject.Canvas);
+        AssociatedObject.ShapePreviewer!.PointStart = e.GetPosition(AssociatedObject.Canvas); //设置 ShapePreviewer 的起始点为鼠标位置
     }
 
     /// <summary>
@@ -238,7 +245,7 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         if (e.LeftButton == MouseButtonState.Pressed
             || e.RightButton != MouseButtonState.Pressed) return;
 
-        AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas);
+        AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas); //更新 ShapePreviewer 的结束点为鼠标位置
 
         _flag = true;
         AssociatedObject.Canvas!.Cursor = Cursors.Cross;
@@ -264,6 +271,8 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         return !(pos.X < 0 || pos.Y < 0 || pos.X > width || pos.Y > height);
     }
 }
+
+#endregion
 
 /// <summary>
 /// 自定义的 WPF 控件，集成了图像显示、缩放、移动和标记功能
@@ -326,7 +335,113 @@ public class ImageEx : ContentControl
     /// 标记命令
     /// </summary>
     public static readonly RoutedUICommand MarkerCommand = new();
+    #endregion
 
+    //定义图像处理命令
+    #region ImageProcessCommands
+
+    /// <summary>
+    /// 图像处理
+    /// </summary>
+    public const string ImageProcess = "ImageProcess";
+
+    /// <summary>
+    /// 还原图像处理
+    /// </summary>
+    public const string ResetImageProcess = "ResetImageProcess";
+
+    /// <summary>
+    /// 还原图像处理
+    /// </summary>
+    public const string SaveDisplay = "SaveDisplay";
+
+    /// <summary>
+    /// 图像处理命令
+    /// </summary>
+    public static readonly RoutedUICommand ImageProcessCommand = new();
+
+    private static ImageSource? _originalImageSource;
+    private static double _brightness = 1;
+    private static double _contrast = 0;
+    private static double _gamma = 1;
+
+    public static void SaveBitmapImage(BitmapImage bitmapImage, string filePath)
+    {
+        BitmapEncoder encoder;
+        string extension = Path.GetExtension(filePath).ToLower();
+
+        switch (extension)
+        {
+            case ".png":
+                encoder = new PngBitmapEncoder();
+                break;
+            case ".jpeg":
+            case ".jpg":
+                encoder = new JpegBitmapEncoder();
+                break;
+            case ".bmp":
+                encoder = new BmpBitmapEncoder();
+                break;
+            case ".gif":
+                encoder = new GifBitmapEncoder();
+                break;
+            case ".tiff":
+            case ".tif":
+                encoder = new TiffBitmapEncoder();
+                break;
+            default:
+                throw new NotSupportedException($"Unsupported file extension: {extension}");
+        }
+
+        encoder.Frames.Add(BitmapFrame.Create(bitmapImage));
+
+        using (FileStream fileStream = new FileStream(filePath, FileMode.Create))
+        {
+            encoder.Save(fileStream);
+        }
+    }
+
+    private BitmapImage ImageSourcetoBitmapImage(ImageSource _imageSource)
+    {
+        BitmapImage bitmapImage = new BitmapImage();
+
+        RenderTargetBitmap renderTargetBitmap = new RenderTargetBitmap((int)_imageSource.Width, (int)_imageSource.Height, 96, 96, PixelFormats.Pbgra32);
+        DrawingVisual drawingVisual = new DrawingVisual();
+        using (DrawingContext drawingContext = drawingVisual.RenderOpen())
+        {
+            drawingContext.DrawImage(_imageSource, new Rect(new Size((int)_imageSource.Width, (int)_imageSource.Height)));
+        }
+        renderTargetBitmap.Render(drawingVisual);
+
+        PngBitmapEncoder encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(renderTargetBitmap));
+        using (MemoryStream memoryStream = new MemoryStream())
+        {
+            encoder.Save(memoryStream);
+            memoryStream.Position = 0;
+
+            bitmapImage.BeginInit();
+            bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+            bitmapImage.StreamSource = memoryStream;
+            bitmapImage.EndInit();
+        }
+        return bitmapImage;
+    }
+
+    private void ApplyImageProcess()
+    {
+        if (ImageSource == null || _originalImageSource == null) return;
+        var processedImage = ImageProcessModel.Gamma(_originalImageSource, _gamma);
+        processedImage = ImageProcessModel.Brightness(processedImage, _brightness);
+        processedImage = ImageProcessModel.Contrast(processedImage, _contrast);
+
+        if (processedImage != null)
+        {
+            processedImage.Freeze();
+            ImageSource = processedImage;
+        }
+        //processedImage = null;
+    }
     #endregion
 
     //定义标记变化和光标变化的事件
@@ -394,6 +509,49 @@ public class ImageEx : ContentControl
             }
             else throw new NotImplementedException();
         }));
+
+        CommandBindings.Add(new CommandBinding(ImageProcessCommand, (obj, args) =>
+        {
+            if (args.Parameter is not string command) return;
+
+            if (ImageSource != null && _originalImageSource == null) _originalImageSource = ImageSource;
+
+            if (command == ImageProcess)
+            {
+                if (ImageSource != null)
+                {
+                    var dialog = new ImageAdjust(_brightness, _contrast, _gamma);
+                    dialog.GammaUpdated += (sender, args) => { _gamma = args; ApplyImageProcess(); };
+                    dialog.ContrastUpdated += (sender, args) => { _contrast = args; ApplyImageProcess(); };
+                    dialog.BrightnessUpdated += (sender, args) => { _brightness = args; ApplyImageProcess(); };
+                    dialog.ShowDialog();
+                }
+
+                Debug.WriteLine($"_gamma_{_gamma}  _contrast_{_contrast}  _brightness_{_brightness}");
+            }
+            else if (command == ResetImageProcess)
+            {
+                ImageSource = _originalImageSource;
+            }
+            else if (command == SaveDisplay)
+            {
+                if (ImageSource == null) return;
+
+                SaveFileDialog saveFileDialog = new SaveFileDialog();
+                saveFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                saveFileDialog.Filter = "TIFF files (*.tif)|*.tif|TIFF files (*.tiff)|*.tiff|All files (*.*)|*.*";
+                saveFileDialog.DefaultExt = "tif";
+                saveFileDialog.AddExtension = true;
+                saveFileDialog.FileName = "Display"; // 设置默认文件名称
+
+                bool? result = saveFileDialog.ShowDialog();
+                if (result == true)
+                {
+                    var bitmapImage = ImageSourcetoBitmapImage(ImageSource);
+                    SaveBitmapImage(bitmapImage, saveFileDialog.FileName);
+                }
+            }
+        }));
     }
 
     /// <summary>
@@ -412,10 +570,10 @@ public class ImageEx : ContentControl
 
         _behaviors.ForEach(b => b.Attach(this));
 
-        Canvas!.PreviewMouseMove += OnCanvasCursorChagned;
+        Canvas!.PreviewMouseMove += OnCanvasCursorChanged;
     }
 
-    private void OnCanvasCursorChagned(object sender, MouseEventArgs e)
+    private void OnCanvasCursorChanged(object sender, MouseEventArgs e)
     {
         base.OnPreviewMouseMove(e);
 
@@ -460,9 +618,10 @@ public class ImageEx : ContentControl
     /// 设置和获取控件的图像源，并在图像源变化时更新图像信息和平铺图像
     /// </summary>
     public static readonly DependencyProperty ImageSourceProperty = DependencyProperty.Register(
-        nameof(ImageSource), typeof(ImageSource), typeof(ImageEx), new PropertyMetadata(null,
-            (o, p) =>
+        nameof(ImageSource), typeof(ImageSource), typeof(ImageEx), new PropertyMetadata(null, (o, p) =>
         {
+            Debug.WriteLine($"ImageSource changed__{DateTime.Now.ToString("HH-mm-ss-fff")}");
+
             if (o is not ImageEx ex) return;
             ex.UpdateImageInfo();
 
@@ -476,7 +635,6 @@ public class ImageEx : ContentControl
 
             if (Math.Abs(s1.Width - s2.Width) > 0.001
                 || Math.Abs(s1.Height - s2.Height) > 0.001) ex.TileImage();
-
 
         }));
 
@@ -513,7 +671,6 @@ public class ImageEx : ContentControl
     public static readonly DependencyProperty ShapeCollectionProperty = DependencyProperty.Register(
     nameof(ShapeCollection), typeof(ObservableCollection<ShapeBase>), typeof(ImageEx), new PropertyMetadata(new ObservableCollection<ShapeBase>(), OnShapeChanged));
 
-
     public static readonly DependencyProperty MarkerMenuProperty = DependencyProperty.Register(
         nameof(MarkerMenu), typeof(ContextMenu), typeof(ImageEx), new PropertyMetadata(default(ContextMenu)));
 
@@ -524,6 +681,32 @@ public class ImageEx : ContentControl
     {
         get => (ContextMenu)GetValue(MarkerMenuProperty);
         set => SetValue(MarkerMenuProperty, value);
+    }
+
+    /// <summary>
+    /// 平铺图案
+    /// </summary>
+    private void TileImage()
+    {
+        ImagePanelScale = DefaultImagePanelScale;
+
+        if (Scroll is null) return;
+
+        Scroll.ScrollToVerticalOffset(0);
+        Scroll.ScrollToHorizontalOffset(0);
+    }
+
+    /// <summary>
+    /// 更新图像信息
+    /// </summary>
+    private void UpdateImageInfo()
+    {
+        if (ImageSource is null) return;
+
+        DefaultImagePanelScale = Math.Min(ActualWidth / ImageSource.Width,
+            ActualHeight / ImageSource.Height);
+
+        DefaultImageSize = (ImageSource.Width, ImageSource.Height);
     }
 
     #region Render Size Info
@@ -563,32 +746,6 @@ public class ImageEx : ContentControl
     #endregion
 
     /// <summary>
-    /// 平铺图案
-    /// </summary>
-    private void TileImage()
-    {
-        ImagePanelScale = DefaultImagePanelScale;
-
-        if (Scroll is null) return;
-
-        Scroll.ScrollToVerticalOffset(0);
-        Scroll.ScrollToHorizontalOffset(0);
-    }
-
-    /// <summary>
-    /// 更新图像信息
-    /// </summary>
-    private void UpdateImageInfo()
-    {
-        if (ImageSource is null) return;
-
-        DefaultImagePanelScale = Math.Min(ActualWidth / ImageSource.Width,
-            ActualHeight / ImageSource.Height);
-
-        DefaultImageSize = (ImageSource.Width, ImageSource.Height);
-    }
-
-    /// <summary>
     /// 双击事件
     /// todo
     /// </summary>
@@ -597,4 +754,5 @@ public class ImageEx : ContentControl
     {
         var pos = e.GetPosition(Canvas);
     }
+
 }

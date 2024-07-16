@@ -1,8 +1,4 @@
-﻿using OpenCvSharp;
-using OpenCvSharp.WpfExtensions;
-using System.Windows.Media.Imaging;
-using Test.ImageExtend.ViewModels;
-using System.Windows;
+﻿using Test.ImageExtend.ViewModels;
 
 namespace Test.ImageExtend
 {
@@ -16,15 +12,7 @@ namespace Test.ImageExtend
         public MainWindow()
         {
             InitializeComponent();
-
             DataContext = MainViewModel;
-
-            var img = Cv2.ImRead(@"..\..\..\Image\1.bmp");
-            //var img = Cv2.ImRead(@"C:\Users\Administrator\Pictures\Saved Pictures\zjx.jpg");
-            var source = img.ToWriteableBitmap();
-            ImageEx.ImageSource = source;
-
-            ImageViewer.ImageSource = BitmapFrame.Create(img.ToBitmapSource());
         }
     }
 }
