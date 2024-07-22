@@ -69,6 +69,23 @@
                                                             Command="{x:Static imageEx:ImageEx.ImageProcessCommand}"
                                                             CommandParameter="SaveDisplay"
                                                             Header="SaveDisplay" />
+                                                        <Separator />
+                                                        <MenuItem
+                                                            Command="{x:Static imageEx:ImageEx.MarkeronImageCommand}"
+                                                            CommandParameter="PointMarker"
+                                                            Header="PointMarker" />
+                                                        <MenuItem
+                                                            Command="{x:Static imageEx:ImageEx.MarkeronImageCommand}"
+                                                            CommandParameter="LineMarker"
+                                                            Header="LineMarker" />
+                                                        <MenuItem
+                                                            Command="{x:Static imageEx:ImageEx.MarkeronImageCommand}"
+                                                            CommandParameter="RectMarker"
+                                                            Header="RectMarker" />
+                                                        <MenuItem
+                                                            Command="{x:Static imageEx:ImageEx.MarkeronImageCommand}"
+                                                            CommandParameter="PolygonMarker"
+                                                            Header="PolygonMarker" />
                                                     </ContextMenu>
                                                 </Image.ContextMenu>
                                             </Image>
@@ -76,19 +93,43 @@
                                         </Grid>
 
                                         <shapeEx:RectangleShape
-                                            x:Name="PART_SHAPE_PREVIEWER"
+                                            x:Name="PART_SHAPE_RECT_PREVIEWER"
                                             Fill="Red"
                                             Opacity="0.5"
                                             Stroke="Blue"
                                             Visibility="Collapsed" />
 
                                         <shapeEx:RectangleShape
-                                            x:Name="PART_SHAPE_MARKER"
+                                            x:Name="PART_SHAPE_RECT_MARKER"
                                             ContextMenu="{TemplateBinding MarkerMenu}"
                                             Fill="Black"
                                             Opacity="0.5"
                                             Stroke="Red"
                                             StrokeThickness="5" />
+
+                                        <shapeEx:LineShape x:Name="PART_SHAPE_LINE_PREVIEWER" StrokeThickness="1" Stroke="Yellow" />
+
+                                        <shapeEx:LineShape x:Name="PART_SHAPE_LINE_MARKER" StrokeThickness="5" Stroke="Green"/>
+
+                                        <shapeEx:PointShape
+                                            x:Name="PART_SHAPE_POINT_PREVIEWER"
+                                            Stroke="Yellow"
+                                            StrokeThickness="5" />
+
+                                        <shapeEx:PointShape
+                                            x:Name="PART_SHAPE_POINT_MARKER"
+                                            Stroke="Green"
+                                            StrokeThickness="15" />
+
+                                        <shapeEx:PolygonShape
+                                            x:Name="PART_SHAPE_POLYGON_MARKER"
+                                            Stroke="Blue"
+                                            StrokeThickness="10" />
+
+                                        <shapeEx:PolygonShape
+                                            x:Name="PART_SHAPE_POLYGON_PREVIEWER"
+                                            Stroke="Orange"
+                                            StrokeThickness="10" />
 
                                     </InkCanvas>
                                 </imageEx:SimplePanel>

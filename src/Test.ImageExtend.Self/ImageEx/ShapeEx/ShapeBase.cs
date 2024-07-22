@@ -1,4 +1,8 @@
-﻿using System.Windows;
+﻿using System.Diagnostics;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Ink;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 //using Lift.UI.Tools.Extension;
@@ -8,6 +12,7 @@ using InkCanvas = System.Windows.Controls.InkCanvas;
 namespace Test.ImageExtend.ImageEx.ShapeEx;
 
 // todo 线宽改成显示像素，而不是实际宽度
+// todo，初始化多了一个点的绘制
 
 public abstract class ShapeBase : Shape
 {
@@ -58,8 +63,7 @@ public abstract class ShapeBase : Shape
     /// <summary>
     /// 切换选中状态
     /// </summary>
-    public virtual void SetSelected() 
-        => SetSelected(Parent as InkCanvas);
+    public virtual void SetSelected()=> SetSelected(Parent as InkCanvas);
 
     /// <summary>
     /// 当选中后
@@ -89,7 +93,7 @@ public abstract class ShapeBase : Shape
     /// <summary>
     /// 构造函数
     /// </summary>
-    protected ShapeBase() : base() 
+    protected ShapeBase() : base()
         => InitComponent();
 
     /// <summary>
@@ -97,15 +101,15 @@ public abstract class ShapeBase : Shape
     /// </summary>
     public void InitComponent()
     {
-        ThicknessNormal = StrokeThickness;
+        //ThicknessNormal = StrokeThickness;
 
         //MouseEnter += (_, _) => RefreshStrokeThickness();
         //MouseLeave += (_, _) => RefreshStrokeThickness();
-        MouseDown += (_, e) =>
-        {
-            //if (e.LeftButton == MouseButtonState.Pressed)
-            //    SetSelected();
-        };
+        //MouseDown += (_, e) =>
+        //{
+        //if (e.LeftButton == MouseButtonState.Pressed)
+        //    SetSelected();
+        //};
 
     }
 
@@ -130,12 +134,12 @@ public abstract class ShapeBase : Shape
     protected virtual void RefreshStrokeThickness()
     {
         Fill = IsSelected
-            ? new SolidColorBrush() { Color = ((SolidColorBrush) Fill).Color, Opacity = 0.5 }
-            : new SolidColorBrush() { Color = ((SolidColorBrush) Fill).Color, Opacity = 0.2 };
+            ? new SolidColorBrush() { Color = ((SolidColorBrush)Fill).Color, Opacity = 0.5 }
+            : new SolidColorBrush() { Color = ((SolidColorBrush)Fill).Color, Opacity = 0.2 };
 
         Stroke = IsSelected
-            ? new SolidColorBrush() { Color = ((SolidColorBrush) Stroke).Color, Opacity = 0.5 }
-            : new SolidColorBrush() { Color = ((SolidColorBrush) Stroke).Color, Opacity = 0.2 };
+            ? new SolidColorBrush() { Color = ((SolidColorBrush)Stroke).Color, Opacity = 0.5 }
+            : new SolidColorBrush() { Color = ((SolidColorBrush)Stroke).Color, Opacity = 0.2 };
 
         StrokeThickness = IsSelected
             ? IsMouseOver ? ThicknessMouseOverAndSelected : ThicknessSelected
@@ -159,11 +163,7 @@ public abstract class ShapeBase : Shape
 
 public class RectangleShape : ShapeBase
 {
-    protected override Geometry DefiningGeometry =>
-        new RectangleGeometry
-        {
-            Rect = new Rect(new Point(0, 0), new Size(Width, Height))
-        };
+    protected override Geometry DefiningGeometry => new RectangleGeometry { Rect = new Rect(new Point(0, 0), new Size(Width, Height)) };
 
     public override void Draw(InkCanvas canvas)
     {
@@ -187,4 +187,95 @@ public class RectangleShape : ShapeBase
     }
 }
 
+public class LineShape : ShapeBase
+{
+    protected override Geometry DefiningGeometry => new LineGeometry(PointStart, PointEnd);
 
+    public override void Refresh()
+    {
+        //Stroke = new SolidColorBrush(Colors.GreenYellow);
+    }
+
+    public override void Draw(InkCanvas canvas)
+    {
+        canvas.Children.Add(this);
+    }
+
+    internal override ShapeBase Clone()
+    {
+        throw new NotImplementedException();
+    }
+}
+
+public class PointShape : ShapeBase
+{
+    protected override Geometry DefiningGeometry => new EllipseGeometry();
+
+    public override void Refresh()
+    {
+        InkCanvas.SetLeft(this, PointEnd.X-5);
+        InkCanvas.SetTop(this, PointEnd.Y-5);
+    }
+
+    public override void Draw(InkCanvas canvas)
+    {
+        Refresh();
+        canvas.Children.Add(this);
+    }
+
+    internal override ShapeBase Clone()
+    {
+        throw new NotImplementedException();
+    }
+}
+
+public class PolygonShape : ShapeBase
+{
+    public List<Point> PolygonPoints { get; private set; } = new List<Point>();
+
+    protected override Geometry DefiningGeometry
+    {
+        get
+        {
+            var geometry = new StreamGeometry();
+            using (var context = geometry.Open())
+            {
+                if (PolygonPoints.Count > 0)
+                {
+                    context.BeginFigure(PolygonPoints[0], true, false);
+                    context.PolyLineTo(PolygonPoints.Skip(1).ToList(), true, true);
+                }
+            }
+            return geometry;
+        }
+    }
+
+    public void ShowPoint(List<Point> points)
+    {
+        PolygonPoints=points;
+        Refresh();
+    }
+
+    public override void Refresh()
+    {
+        Stroke = new SolidColorBrush(Colors.GreenYellow);
+        StrokeThickness = 2;
+        //base.Refresh();
+    }
+
+    public override void Draw(InkCanvas canvas)
+    {
+        Refresh();
+        canvas.Children.Add(this);
+    }
+
+    internal override ShapeBase Clone()
+    {
+        var clone = new PolygonShape();
+        foreach (var point in PolygonPoints)
+        {
+            clone.PolygonPoints.Add(point);
+        }
+        return clone;
+    }
+}

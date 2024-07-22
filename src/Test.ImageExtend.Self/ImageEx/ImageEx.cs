@@ -1,7 +1,6 @@
 ﻿
 using Microsoft.Win32;
 using Microsoft.Xaml.Behaviors;
-using OpenCvSharp;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -11,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 using Test.ImageExtend.Extension;
 using Test.ImageExtend.ImageEx.ShapeEx;
 using Test.ImageExtend.Self;
@@ -138,6 +138,21 @@ public class ImageExViewerBehavior : Behavior<ImageEx>
 /// </summary>
 public class ImageExDrawBehavior : Behavior<ImageEx>
 {
+    private bool _flagCrossDownMoveUP = false;
+    private bool _flagPoint = false;
+    private bool _flagPolygon = false;
+    private bool _flagPolygonReset = false;
+    private int clickCount = 0;
+    private const int DoubleClickTime = 400;
+    private System.Timers.Timer? clickTimer;
+    private List<Point> _imageEXpolygonPoints = new List<Point>();
+
+    private void ClickTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
+    {
+        clickTimer?.Stop();
+        clickCount = 0;
+    }
+
     /// <summary>
     /// 将 Loaded 事件绑定到 AssociatedObject
     /// </summary>
@@ -155,7 +170,6 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         AssociatedObject.Canvas!.PreviewMouseDown -= OnCanvasPreviewMouseDown;
         AssociatedObject.Canvas!.MouseLeave -= OnCanvasMouseLeave;
         AssociatedObject.MainPanel!.PreviewMouseUp -= OnCanvasPreviewMouseUp;
-
         AssociatedObject.Loaded -= OnLoaded;
     }
 
@@ -165,16 +179,21 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         AssociatedObject.Canvas!.PreviewMouseDown += OnCanvasPreviewMouseDown;
         AssociatedObject.Canvas!.MouseLeave += OnCanvasMouseLeave;
         AssociatedObject.MainPanel!.PreviewMouseUp += OnCanvasPreviewMouseUp;
-    }
 
-    private bool _flag = false;
+        clickTimer = new System.Timers.Timer(DoubleClickTime);
+        clickTimer.Elapsed += ClickTimerElapsed;
+    }
 
     /// <summary>
     /// 处理在画布上的鼠标事件以绘制形状
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
-    private void OnCanvasMouseLeave(object sender, MouseEventArgs e) { }
+    private void OnCanvasMouseLeave(object sender, MouseEventArgs e)
+    {
+        if (AssociatedObject.ShapePreviewer == null || AssociatedObject.ShapeMarker == null) return;
+        Debug.WriteLine($"{AssociatedObject.ShapePreviewer.ToString()}__OnCanvasMouseLeave");
+    }
 
     /// <summary>
     /// 处理在画布上的鼠标事件以绘制形状
@@ -184,54 +203,95 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
     /// <param name="e"></param>
     private void OnCanvasPreviewMouseUp(object sender, MouseButtonEventArgs e)
     {
-        if (!_flag) return;
-        _flag = false;
+        if (AssociatedObject.ShapePreviewer == null 
+            || AssociatedObject.ShapeMarker == null) return;
 
-        AssociatedObject.ShapePreviewer!.Visibility = Visibility.Collapsed;
-        AssociatedObject.Canvas!.Cursor = Cursors.Arrow;
+        Debug.WriteLine($"{AssociatedObject.ShapePreviewer.ToString()}__OnCanvasPreviewMouseUp");
 
-        // valid location
-        if (!ValidLocation(e)) return;
+        if (AssociatedObject.NamePartShapeMarkder.Contains("RECT"))
+        {
+            if (!_flagCrossDownMoveUP) return;
+            _flagCrossDownMoveUP = false;
 
-        // valid size
-        var min = Math.Min(AssociatedObject.ShapePreviewer!.Height, AssociatedObject.ShapePreviewer!.Width);
-        var threshold = Math.Min(AssociatedObject.ImageSource!.Height, AssociatedObject.ImageSource!.Width) * 0.02;
-        if (threshold > min) return;
+            AssociatedObject.ShapePreviewer!.Visibility = Visibility.Collapsed;
+            AssociatedObject.Canvas!.Cursor = Cursors.Arrow;
 
-        // render
-        AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas);
+            // valid location
+            if (!ValidLocation(e)) return;
 
-        // add shape
-        //var rec = AssociatedObject.ShapePreviewer!.Clone();
-        //AssociatedObject.ShapeCollection.Add(rec);
-        AssociatedObject.ShapeMarker!.PointStart = AssociatedObject.ShapePreviewer!.PointStart;
-        AssociatedObject.ShapeMarker!.PointEnd = AssociatedObject.ShapePreviewer!.PointEnd;
-        AssociatedObject.ShapeMarker!.Visibility = Visibility.Visible;
+            // valid size
+            var min = Math.Min(AssociatedObject.ShapePreviewer!.Height, AssociatedObject.ShapePreviewer!.Width);
+            var threshold = Math.Min(AssociatedObject.ImageSource!.Height, AssociatedObject.ImageSource!.Width) * 0.02;
+            if (threshold > min) return;
 
-        AssociatedObject.ShapeMarker!.Refresh();
+            // render
+            AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas);
 
-        var marker = AssociatedObject.ShapeMarker;
-        var start = marker.PointStart;
-        var end = marker.PointEnd;
+            // add shape
+            //var rec = AssociatedObject.ShapePreviewer!.Clone();
+            //AssociatedObject.ShapeCollection.Add(rec);
+            AssociatedObject.ShapeMarker!.PointStart = AssociatedObject.ShapePreviewer!.PointStart;
+            AssociatedObject.ShapeMarker!.PointEnd = AssociatedObject.ShapePreviewer!.PointEnd;
+            AssociatedObject.ShapeMarker!.Visibility = Visibility.Visible;
 
-        var location = new Point(Math.Min(start.X, end.X), Math.Min(start.Y, end.Y));
+            AssociatedObject.ShapeMarker!.Refresh();
 
-        AssociatedObject.OnMarkderChanged
-            ?.Invoke(new Rect(location.X, location.Y, marker.Width, marker.Height));
-    }
+            var marker = AssociatedObject.ShapeMarker;
+            var start = marker.PointStart;
+            var end = marker.PointEnd;
+            var location = new Point(Math.Min(start.X, end.X), Math.Min(start.Y, end.Y));
+            AssociatedObject.OnRectMarkderChanged?.Invoke(new Rect(location.X, location.Y, marker.Width, marker.Height));
+            AssociatedObject.OnLineMarkderChanged?.Invoke(new Line { X1 = start.X, Y1 = start.Y, X2 = end.X, Y2 = end.Y, });
+        }
+        else if (AssociatedObject.NamePartShapeMarkder.Contains("LINE"))
+        {
+            if (!_flagCrossDownMoveUP) return;
+            _flagCrossDownMoveUP = false;
 
-    /// <summary>
-    /// 处理在画布上的鼠标事件以绘制形状
-    /// 按下时记录起始点
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
-    private void OnCanvasPreviewMouseDown(object sender, MouseButtonEventArgs e)
-    {
-        if (e.LeftButton == MouseButtonState.Pressed
-            || e.RightButton != MouseButtonState.Pressed) return;
+            AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas);
+            AssociatedObject.ShapePreviewer!.Visibility = Visibility.Visible;
+            //AssociatedObject.Canvas!.Cursor = Cursors.Arrow;
 
-        AssociatedObject.ShapePreviewer!.PointStart = e.GetPosition(AssociatedObject.Canvas); //设置 ShapePreviewer 的起始点为鼠标位置
+            if (!ValidLocation(e)) return;
+
+            var min = Math.Min(AssociatedObject.ShapePreviewer!.Height, AssociatedObject.ShapePreviewer!.Width);
+            var threshold = Math.Min(AssociatedObject.ImageSource!.Height, AssociatedObject.ImageSource!.Width) * 0.02;
+            if (threshold > min) return;
+
+            AssociatedObject.ShapeMarker!.PointStart = AssociatedObject.ShapePreviewer!.PointStart;
+            AssociatedObject.ShapeMarker!.PointEnd = AssociatedObject.ShapePreviewer!.PointEnd;
+            AssociatedObject.ShapeMarker!.Visibility = Visibility.Visible;
+            
+            AssociatedObject.ShapeMarker!.Refresh();
+        }
+        else if (AssociatedObject.NamePartShapeMarkder.Contains("POINT"))
+        {
+            if (!_flagPoint) return;
+            _flagPoint = false;
+
+            AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas);
+            AssociatedObject.ShapePreviewer!.Visibility = Visibility.Collapsed;
+
+            if (!ValidLocation(e)) return;
+
+            AssociatedObject.ShapeMarker!.PointEnd = AssociatedObject.ShapePreviewer!.PointEnd;
+            AssociatedObject.ShapeMarker!.Visibility = Visibility.Visible;
+            AssociatedObject.ShapeMarker!.Refresh();
+        }
+        else if (AssociatedObject.NamePartShapeMarkder.Contains("POLYGON"))
+        {
+            clickCount++;
+            if (clickCount == 1)
+            {
+                clickTimer?.Start();
+            }
+            else if (clickCount == 2)
+            {
+                clickTimer?.Stop();
+                clickCount = 0;
+                OnMouseDoubleClick_POLYGON(e);
+            }
+        }
     }
 
     /// <summary>
@@ -242,16 +302,144 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
     /// <param name="e"></param>
     private void OnCanvasPreviewMouseMove(object sender, MouseEventArgs e)
     {
-        if (e.LeftButton == MouseButtonState.Pressed
-            || e.RightButton != MouseButtonState.Pressed) return;
+        if (AssociatedObject.ShapePreviewer == null 
+            || AssociatedObject.ShapeMarker == null) return;
 
-        AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas); //更新 ShapePreviewer 的结束点为鼠标位置
+        if (AssociatedObject.NamePartShapeMarkder.Contains("RECT"))
+        {
+            if (e.LeftButton == MouseButtonState.Pressed
+                || e.RightButton != MouseButtonState.Pressed) return;
 
-        _flag = true;
-        AssociatedObject.Canvas!.Cursor = Cursors.Cross;
+            AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas);
 
-        AssociatedObject.ShapePreviewer!.Visibility = Visibility.Visible;
-        AssociatedObject.ShapePreviewer!.Refresh();
+            _flagCrossDownMoveUP = true;
+            AssociatedObject.Canvas!.Cursor = Cursors.Cross;
+
+            AssociatedObject.ShapePreviewer!.Visibility = Visibility.Visible;
+            AssociatedObject.ShapePreviewer!.Refresh(); 
+        }
+        else if (AssociatedObject.NamePartShapeMarkder.Contains("LINE"))
+        {
+            //todo，线段预览不显示
+            AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas);
+            AssociatedObject.ShapePreviewer!.Visibility = Visibility.Visible;
+            AssociatedObject.ShapePreviewer!.Refresh();
+
+            _flagCrossDownMoveUP = true;
+        }
+        else if (AssociatedObject.NamePartShapeMarkder.Contains("POINT"))
+        {
+            if (_flagPoint) return;
+
+            if (!ValidLocation(e)) return;
+
+            AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas);//预览提示
+            AssociatedObject.ShapePreviewer!.Visibility = Visibility.Visible;
+            AssociatedObject.ShapePreviewer!.Refresh();
+        }
+        else if (AssociatedObject.NamePartShapeMarkder.Contains("POLYGON"))
+        {
+            if(_flagPolygonReset)return;
+
+            var polygonShape = AssociatedObject.ShapePreviewer as PolygonShape;
+            if (polygonShape == null) return;
+            if (polygonShape.PolygonPoints.Count == 0) return;
+
+            var point = e.GetPosition(AssociatedObject.Canvas);
+
+            if(_flagPolygon)
+            {
+                _imageEXpolygonPoints.Add(point);
+                _flagPolygon=false;
+            }
+            else
+            {
+                _imageEXpolygonPoints[_imageEXpolygonPoints.Count-1]= point;
+            }
+            polygonShape.ShowPoint(_imageEXpolygonPoints);
+        }
+    }
+
+    /// <summary>
+    /// 处理在画布上的鼠标事件以绘制形状
+    /// 按下时记录起始点
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void OnCanvasPreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (AssociatedObject.ShapePreviewer == null || AssociatedObject.ShapeMarker == null) return;
+        Debug.WriteLine($"{AssociatedObject.ShapePreviewer.ToString()}__OnCanvasPreviewMouseDown");
+
+        if (AssociatedObject.NamePartShapeMarkder.Contains("RECT"))
+        {
+            if (e.LeftButton == MouseButtonState.Pressed 
+                || e.RightButton != MouseButtonState.Pressed) return;
+
+            AssociatedObject.ShapePreviewer!.PointStart = e.GetPosition(AssociatedObject.Canvas);
+        }
+        else if (AssociatedObject.NamePartShapeMarkder.Contains("LINE"))
+        {
+            if (e.LeftButton != MouseButtonState.Pressed 
+                || e.RightButton == MouseButtonState.Pressed) return;
+
+            AssociatedObject.ShapeMarker.Visibility = Visibility.Collapsed;
+            AssociatedObject.ShapePreviewer!.Visibility = Visibility.Collapsed;
+
+            AssociatedObject.ShapePreviewer.Visibility = Visibility.Visible;
+            AssociatedObject.ShapePreviewer!.PointStart = e.GetPosition(AssociatedObject.Canvas);
+        }
+        else if (AssociatedObject.NamePartShapeMarkder.Contains("POINT"))
+        {
+            if (e.LeftButton == MouseButtonState.Pressed 
+                || e.RightButton != MouseButtonState.Pressed) _flagPoint = true;
+        }
+        else if (AssociatedObject.NamePartShapeMarkder.Contains("POLYGON"))
+        {
+            var polygonShape = AssociatedObject.ShapePreviewer as PolygonShape;
+            if (polygonShape == null) return;
+            if (_flagPolygonReset) _imageEXpolygonPoints.Clear();
+
+            var point = e.GetPosition(AssociatedObject.Canvas);
+            _imageEXpolygonPoints.Add(point);
+            polygonShape.ShowPoint(_imageEXpolygonPoints);
+
+            _flagPolygon = true;
+            _flagPolygonReset = false;
+        }
+    }
+
+    /// <summary>
+    /// 双击事件——多边形
+    /// </summary>
+    /// <param name="e"></param>
+    private void OnMouseDoubleClick_POLYGON(MouseButtonEventArgs e)
+    {
+        if (AssociatedObject.NamePartShapeMarkder.Contains("POLYGON"))
+        {
+            var polygonShape = AssociatedObject.ShapePreviewer as PolygonShape;
+            if (polygonShape == null) return;
+
+            // Close the polygon by adding the start point to the end
+            if (_imageEXpolygonPoints.Count > 1)
+            {
+                _imageEXpolygonPoints.Add(_imageEXpolygonPoints[0]);
+            }
+
+            polygonShape.ShowPoint(_imageEXpolygonPoints);
+
+            _flagPolygonReset=true;
+
+            //AssociatedObject.ShapeMarker!.Visibility = Visibility.Visible;
+            //AssociatedObject.ShapeMarker!.Refresh();
+
+            //_flagPolygon = false;
+
+            //_imageEXpolygonPoints.Clear();
+
+            //// Raise the polygon completed event if necessary
+            //AssociatedObject.OnPolygonMarkerChanged?.Invoke(polygonShape.PolygonPoints);
+        }
     }
 
     /// <summary>
@@ -268,6 +456,7 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         var width = AssociatedObject.Canvas!.ActualWidth;
         var height = AssociatedObject.Canvas!.ActualHeight;
 
+        //todo，point的InkCanvas.Set不偏移，ActualHeight会变化
         return !(pos.X < 0 || pos.Y < 0 || pos.X > width || pos.Y > height);
     }
 }
@@ -281,8 +470,8 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
 [TemplatePart(Name = NamePartScrollView, Type = typeof(ScrollViewer))]
 [TemplatePart(Name = NamePartViewBox, Type = typeof(Viewbox))]
 [TemplatePart(Name = NamePartCanvas, Type = typeof(InkCanvas))]
-[TemplatePart(Name = NamePartShapePreviewer, Type = typeof(ShapeBase))]
-[TemplatePart(Name = NamePartShapeMarkder, Type = typeof(ShapeBase))]
+//[TemplatePart(Name = NamePartShapePreviewer, Type = typeof(ShapeBase))]
+//[TemplatePart(Name = NamePartShapeMarkder, Type = typeof(ShapeBase))]
 public class ImageEx : ContentControl
 {
     //定义控件模板中的各种部分，包括主面板、滚动视图、视图框、画布和形状预览器、标记器。
@@ -296,9 +485,9 @@ public class ImageEx : ContentControl
 
     public const string NamePartCanvas = "PART_CANVAS";
 
-    public const string NamePartShapePreviewer = "PART_SHAPE_PREVIEWER";
+    public string NamePartShapePreviewer = string.Empty;
 
-    public const string NamePartShapeMarkder = "PART_SHAPE_MARKER";
+    public string NamePartShapeMarkder = string.Empty;
 
     #endregion
 
@@ -333,8 +522,35 @@ public class ImageEx : ContentControl
 
     /// <summary>
     /// 标记命令
+    /// marker上显示弹窗
     /// </summary>
     public static readonly RoutedUICommand MarkerCommand = new();
+
+    /// <summary>
+    /// 点标记
+    /// </summary>
+    public const string PointMarker = "PointMarker";
+
+    /// <summary>
+    /// 线标记
+    /// </summary>
+    public const string LineMarker = "LineMarker";
+
+    /// <summary>
+    /// 矩形标记
+    /// </summary>
+    public const string RectMarker = "RectMarker";
+
+    /// <summary>
+    /// 多边形标记
+    /// </summary>
+    public const string PolygonMarker = "PolygonMarker";
+
+    /// <summary>
+    /// 标记命令
+    /// Image上显示弹窗
+    /// </summary>
+    public static readonly RoutedUICommand MarkeronImageCommand = new();
     #endregion
 
     //定义图像处理命令
@@ -368,7 +584,7 @@ public class ImageEx : ContentControl
     public static void SaveBitmapImage(BitmapImage bitmapImage, string filePath)
     {
         BitmapEncoder encoder;
-        string extension = Path.GetExtension(filePath).ToLower();
+        string extension = System.IO.Path.GetExtension(filePath).ToLower();
 
         switch (extension)
         {
@@ -450,10 +666,9 @@ public class ImageEx : ContentControl
     /// <summary>
     /// 返回相对Image的坐标
     /// </summary>
-    public Action<Rect>? OnMarkderChanged;
-
+    public Action<Rect>? OnRectMarkderChanged;
+    public Action<Line>? OnLineMarkderChanged;//未订阅
     public Action<(int X, int Y, Color C)>? OnCursorChanged;
-
     public Func<int, int, Color>? GetImageColorFromPosition;
 
     #endregion
@@ -465,8 +680,7 @@ public class ImageEx : ContentControl
     /// </summary>
     static ImageEx()
     {
-        DefaultStyleKeyProperty.OverrideMetadata(typeof(ImageEx)
-            , new FrameworkPropertyMetadata(typeof(ImageEx)));
+        DefaultStyleKeyProperty.OverrideMetadata(typeof(ImageEx), new FrameworkPropertyMetadata(typeof(ImageEx)));
     }
 
     /// <summary>
@@ -478,6 +692,7 @@ public class ImageEx : ContentControl
         _behaviors.Add(new ImageExViewerBehavior());
         _behaviors.Add(new ImageExDrawBehavior());
 
+        //缩放拖拽
         CommandBindings.Add(new CommandBinding(MarkerCommand, (obj, args) =>
         {
             if (args.Parameter is not string command || ShapeMarker is null) return;
@@ -510,6 +725,27 @@ public class ImageEx : ContentControl
             else throw new NotImplementedException();
         }));
 
+        //mark标记
+        CommandBindings.Add(new CommandBinding(MarkeronImageCommand, (obj, args) =>
+        {
+            if (args.Parameter is not string command) return;
+
+            if (ShapePreviewer != null)
+                ShapePreviewer.Visibility = Visibility.Collapsed;
+
+            if (ShapeMarker != null)
+                ShapeMarker.Visibility = Visibility.Collapsed;
+
+            NamePartShapePreviewer = GetShapeNameandCurrentType(true, command);
+            NamePartShapeMarkder = GetShapeNameandCurrentType(false, command);
+
+            ShapePreviewer = Template.FindName(NamePartShapePreviewer, this) as ShapeBase;
+            ShapeMarker = Template.FindName(NamePartShapeMarkder, this) as ShapeBase;
+
+            
+        }));
+
+        //图像处理
         CommandBindings.Add(new CommandBinding(ImageProcessCommand, (obj, args) =>
         {
             if (args.Parameter is not string command) return;
@@ -554,6 +790,30 @@ public class ImageEx : ContentControl
         }));
     }
 
+    private string GetShapeNameandCurrentType(bool isPreviewer, string command)
+    {
+        string name = string.Empty;
+
+        switch (command)
+        {
+            case "PointMarker":
+                name = isPreviewer ? "PART_SHAPE_POINT_PREVIEWER" : "PART_SHAPE_POINT_MARKER";
+                break;
+            case "LineMarker":
+                name = isPreviewer ? "PART_SHAPE_LINE_PREVIEWER" : "PART_SHAPE_LINE_MARKER";
+                break;
+            case "RectMarker":
+                name = isPreviewer ? "PART_SHAPE_RECT_PREVIEWER" : "PART_SHAPE_RECT_MARKER";
+                break;
+            case "PolygonMarker":
+                name = isPreviewer ? "PART_SHAPE_POLYGON_PREVIEWER" : "PART_SHAPE_POLYGON_MARKER";
+                break;
+            default:
+                throw new NotImplementedException("Not Valid Command!");
+        }
+        return name;
+    }
+
     /// <summary>
     /// 找到模板中的各部分并将行为附加到控件上
     /// </summary>
@@ -585,6 +845,8 @@ public class ImageEx : ContentControl
 
         var c = GetImageColorFromPosition(x, y);
         OnCursorChanged?.Invoke((x, y, c));
+
+        Debug.WriteLine("OnCanvasCursorChanged");
     }
 
     /// <summary>
@@ -745,14 +1007,6 @@ public class ImageEx : ContentControl
 
     #endregion
 
-    /// <summary>
-    /// 双击事件
-    /// todo
-    /// </summary>
-    /// <param name="e"></param>
-    protected override void OnMouseDoubleClick(MouseButtonEventArgs e)
-    {
-        var pos = e.GetPosition(Canvas);
-    }
+
 
 }
