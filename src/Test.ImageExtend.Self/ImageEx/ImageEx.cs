@@ -4,6 +4,7 @@ using Microsoft.Xaml.Behaviors;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -138,7 +139,9 @@ public class ImageExViewerBehavior : Behavior<ImageEx>
 /// </summary>
 public class ImageExDrawBehavior : Behavior<ImageEx>
 {
-    private bool _flagCrossDownMoveUP = false;
+    private bool _flagLine = false;
+    private bool _flagLineDown = false;
+    private bool _flagRect = false;
     private bool _flagPoint = false;
     private bool _flagPolygon = false;
     private bool _flagPolygonReset = false;
@@ -191,8 +194,7 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
     /// <param name="e"></param>
     private void OnCanvasMouseLeave(object sender, MouseEventArgs e)
     {
-        if (AssociatedObject.ShapePreviewer == null || AssociatedObject.ShapeMarker == null) return;
-        Debug.WriteLine($"{AssociatedObject.ShapePreviewer.ToString()}__OnCanvasMouseLeave");
+        Debug.WriteLine($"{AssociatedObject.ShapePreviewer?.ToString()}__OnCanvasMouseLeave");
     }
 
     /// <summary>
@@ -203,54 +205,42 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
     /// <param name="e"></param>
     private void OnCanvasPreviewMouseUp(object sender, MouseButtonEventArgs e)
     {
-        if (AssociatedObject.ShapePreviewer == null 
+        if (AssociatedObject.ShapePreviewer == null
             || AssociatedObject.ShapeMarker == null) return;
 
         Debug.WriteLine($"{AssociatedObject.ShapePreviewer.ToString()}__OnCanvasPreviewMouseUp");
 
         if (AssociatedObject.NamePartShapeMarkder.Contains("RECT"))
         {
-            if (!_flagCrossDownMoveUP) return;
-            _flagCrossDownMoveUP = false;
+            if (!_flagRect) return;
+            _flagRect = false;
 
             AssociatedObject.ShapePreviewer!.Visibility = Visibility.Collapsed;
             AssociatedObject.Canvas!.Cursor = Cursors.Arrow;
 
-            // valid location
             if (!ValidLocation(e)) return;
 
-            // valid size
             var min = Math.Min(AssociatedObject.ShapePreviewer!.Height, AssociatedObject.ShapePreviewer!.Width);
             var threshold = Math.Min(AssociatedObject.ImageSource!.Height, AssociatedObject.ImageSource!.Width) * 0.02;
             if (threshold > min) return;
 
-            // render
             AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas);
 
-            // add shape
-            //var rec = AssociatedObject.ShapePreviewer!.Clone();
-            //AssociatedObject.ShapeCollection.Add(rec);
             AssociatedObject.ShapeMarker!.PointStart = AssociatedObject.ShapePreviewer!.PointStart;
             AssociatedObject.ShapeMarker!.PointEnd = AssociatedObject.ShapePreviewer!.PointEnd;
             AssociatedObject.ShapeMarker!.Visibility = Visibility.Visible;
 
             AssociatedObject.ShapeMarker!.Refresh();
 
-            var marker = AssociatedObject.ShapeMarker;
-            var start = marker.PointStart;
-            var end = marker.PointEnd;
-            var location = new Point(Math.Min(start.X, end.X), Math.Min(start.Y, end.Y));
-            AssociatedObject.OnRectMarkderChanged?.Invoke(new Rect(location.X, location.Y, marker.Width, marker.Height));
-            AssociatedObject.OnLineMarkderChanged?.Invoke(new Line { X1 = start.X, Y1 = start.Y, X2 = end.X, Y2 = end.Y, });
+            Debug.WriteLine($"Up_p X_{AssociatedObject.ShapePreviewer!.PointStart.X.ToString("0.00")}  " + $"Y_{AssociatedObject.ShapePreviewer!.PointStart.Y.ToString("0.00")}");
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("LINE"))
         {
-            if (!_flagCrossDownMoveUP) return;
-            _flagCrossDownMoveUP = false;
+            if (!_flagLine) return;
+            _flagLine = false;
 
-            AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas);
-            AssociatedObject.ShapePreviewer!.Visibility = Visibility.Visible;
-            //AssociatedObject.Canvas!.Cursor = Cursors.Arrow;
+            AssociatedObject.ShapePreviewer!.Visibility = Visibility.Collapsed;
+            AssociatedObject.Canvas!.Cursor = Cursors.Arrow;
 
             if (!ValidLocation(e)) return;
 
@@ -258,11 +248,16 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
             var threshold = Math.Min(AssociatedObject.ImageSource!.Height, AssociatedObject.ImageSource!.Width) * 0.02;
             if (threshold > min) return;
 
+            AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas);
+
             AssociatedObject.ShapeMarker!.PointStart = AssociatedObject.ShapePreviewer!.PointStart;
             AssociatedObject.ShapeMarker!.PointEnd = AssociatedObject.ShapePreviewer!.PointEnd;
             AssociatedObject.ShapeMarker!.Visibility = Visibility.Visible;
-            
+
             AssociatedObject.ShapeMarker!.Refresh();
+
+            Debug.WriteLine($"Up_p X_{AssociatedObject.ShapePreviewer!.PointStart.X.ToString("0.00")}  " + $"Y_{AssociatedObject.ShapePreviewer!.PointStart.Y.ToString("0.00")}");
+
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("POINT"))
         {
@@ -289,8 +284,28 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
             {
                 clickTimer?.Stop();
                 clickCount = 0;
-                OnMouseDoubleClick_POLYGON(e);
+
+                AssociatedObject.ShapePreviewer!.Visibility = Visibility.Collapsed;
+                AssociatedObject.ShapeMarker!.Visibility = Visibility.Visible;
+
+                var polygonMarker = AssociatedObject.ShapeMarker as PolygonShape;
+                if (polygonMarker == null) return;
+
+                if (_imageEXpolygonPoints.Count >= 3)
+                {
+                    _imageEXpolygonPoints.Add(_imageEXpolygonPoints.First());
+                    polygonMarker.ShowPoint(_imageEXpolygonPoints);
+                    _flagPolygonReset = true;
+                }
+                else
+                {
+                    _imageEXpolygonPoints.Clear();
+                    AssociatedObject.ShapeMarker!.Visibility = Visibility.Collapsed;
+                    _flagPolygonReset = false;
+                }
             }
+
+            Debug.WriteLine($"UP {_imageEXpolygonPoints.Count}");
         }
     }
 
@@ -302,7 +317,7 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
     /// <param name="e"></param>
     private void OnCanvasPreviewMouseMove(object sender, MouseEventArgs e)
     {
-        if (AssociatedObject.ShapePreviewer == null 
+        if (AssociatedObject.ShapePreviewer == null
             || AssociatedObject.ShapeMarker == null) return;
 
         if (AssociatedObject.NamePartShapeMarkder.Contains("RECT"))
@@ -312,51 +327,61 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
 
             AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas);
 
-            _flagCrossDownMoveUP = true;
+            _flagRect = true;
             AssociatedObject.Canvas!.Cursor = Cursors.Cross;
 
             AssociatedObject.ShapePreviewer!.Visibility = Visibility.Visible;
-            AssociatedObject.ShapePreviewer!.Refresh(); 
+            AssociatedObject.ShapePreviewer!.Refresh();
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("LINE"))
         {
-            //todo，线段预览不显示
+            if (e.LeftButton != MouseButtonState.Pressed
+                 || e.RightButton == MouseButtonState.Pressed) return;
+
             AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas);
+
+            _flagLine = true;
+            AssociatedObject.Canvas!.Cursor = Cursors.Cross;
+
             AssociatedObject.ShapePreviewer!.Visibility = Visibility.Visible;
             AssociatedObject.ShapePreviewer!.Refresh();
 
-            _flagCrossDownMoveUP = true;
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("POINT"))
         {
-            if (_flagPoint) return;
-
             if (!ValidLocation(e)) return;
-
-            AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas);//预览提示
+            AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas);
             AssociatedObject.ShapePreviewer!.Visibility = Visibility.Visible;
             AssociatedObject.ShapePreviewer!.Refresh();
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("POLYGON"))
         {
-            if(_flagPolygonReset)return;
+            if (_flagPolygonReset) return;
 
             var polygonShape = AssociatedObject.ShapePreviewer as PolygonShape;
             if (polygonShape == null) return;
-            if (polygonShape.PolygonPoints.Count == 0) return;
+            if (polygonShape.Points.Count == 0) return;
 
             var point = e.GetPosition(AssociatedObject.Canvas);
 
-            if(_flagPolygon)
+            if (_flagPolygon)
             {
-                _imageEXpolygonPoints.Add(point);
-                _flagPolygon=false;
+                if (ValidPoint(point, _imageEXpolygonPoints))
+                    _imageEXpolygonPoints.Add(point);
+                else
+                {
+                    Debug.WriteLine("*********************************************ValidFalse");
+                }
+
+                _flagPolygon = false;
             }
             else
             {
-                _imageEXpolygonPoints[_imageEXpolygonPoints.Count-1]= point;
+                _imageEXpolygonPoints[_imageEXpolygonPoints.Count - 1] = point;
             }
             polygonShape.ShowPoint(_imageEXpolygonPoints);
+
+            Debug.WriteLine($"Move {_imageEXpolygonPoints.Count}");
         }
     }
 
@@ -373,72 +398,51 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
 
         if (AssociatedObject.NamePartShapeMarkder.Contains("RECT"))
         {
-            if (e.LeftButton == MouseButtonState.Pressed 
+            if (e.LeftButton == MouseButtonState.Pressed
                 || e.RightButton != MouseButtonState.Pressed) return;
 
             AssociatedObject.ShapePreviewer!.PointStart = e.GetPosition(AssociatedObject.Canvas);
+
+            Debug.WriteLine($"DOWN_p X_{AssociatedObject.ShapePreviewer!.PointStart.X.ToString("0.00")}  " + $"Y_{AssociatedObject.ShapePreviewer!.PointStart.Y.ToString("0.00")}");
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("LINE"))
         {
-            if (e.LeftButton != MouseButtonState.Pressed 
-                || e.RightButton == MouseButtonState.Pressed) return;
+            if (e.LeftButton != MouseButtonState.Pressed
+                || e.RightButton == MouseButtonState.Pressed) return;//改成左键操作
 
-            AssociatedObject.ShapeMarker.Visibility = Visibility.Collapsed;
-            AssociatedObject.ShapePreviewer!.Visibility = Visibility.Collapsed;
-
-            AssociatedObject.ShapePreviewer.Visibility = Visibility.Visible;
             AssociatedObject.ShapePreviewer!.PointStart = e.GetPosition(AssociatedObject.Canvas);
+
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("POINT"))
         {
-            if (e.LeftButton == MouseButtonState.Pressed 
-                || e.RightButton != MouseButtonState.Pressed) _flagPoint = true;
+            if (e.LeftButton == MouseButtonState.Pressed || e.RightButton != MouseButtonState.Pressed)
+            {
+                _flagPoint = true;
+                AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas);
+                AssociatedObject.ShapePreviewer!.Visibility = Visibility.Visible;
+                AssociatedObject.ShapePreviewer!.Refresh();
+            }
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("POLYGON"))
         {
             var polygonShape = AssociatedObject.ShapePreviewer as PolygonShape;
             if (polygonShape == null) return;
-            if (_flagPolygonReset) _imageEXpolygonPoints.Clear();
+            if (_flagPolygonReset)
+            {
+                _imageEXpolygonPoints.Clear();
+                AssociatedObject.ShapeMarker!.Visibility = Visibility.Collapsed;
+            }
+
+            AssociatedObject.ShapePreviewer!.Visibility = Visibility.Visible;
 
             var point = e.GetPosition(AssociatedObject.Canvas);
-            _imageEXpolygonPoints.Add(point);
+            if (ValidPoint(point, _imageEXpolygonPoints)) _imageEXpolygonPoints.Add(point);
             polygonShape.ShowPoint(_imageEXpolygonPoints);
 
             _flagPolygon = true;
             _flagPolygonReset = false;
-        }
-    }
 
-    /// <summary>
-    /// 双击事件——多边形
-    /// </summary>
-    /// <param name="e"></param>
-    private void OnMouseDoubleClick_POLYGON(MouseButtonEventArgs e)
-    {
-        if (AssociatedObject.NamePartShapeMarkder.Contains("POLYGON"))
-        {
-            var polygonShape = AssociatedObject.ShapePreviewer as PolygonShape;
-            if (polygonShape == null) return;
-
-            // Close the polygon by adding the start point to the end
-            if (_imageEXpolygonPoints.Count > 1)
-            {
-                _imageEXpolygonPoints.Add(_imageEXpolygonPoints[0]);
-            }
-
-            polygonShape.ShowPoint(_imageEXpolygonPoints);
-
-            _flagPolygonReset=true;
-
-            //AssociatedObject.ShapeMarker!.Visibility = Visibility.Visible;
-            //AssociatedObject.ShapeMarker!.Refresh();
-
-            //_flagPolygon = false;
-
-            //_imageEXpolygonPoints.Clear();
-
-            //// Raise the polygon completed event if necessary
-            //AssociatedObject.OnPolygonMarkerChanged?.Invoke(polygonShape.PolygonPoints);
+            Debug.WriteLine($"DOWN {_imageEXpolygonPoints.Count}");
         }
     }
 
@@ -459,6 +463,33 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         //todo，point的InkCanvas.Set不偏移，ActualHeight会变化
         return !(pos.X < 0 || pos.Y < 0 || pos.X > width || pos.Y > height);
     }
+
+    /// <summary>
+    /// 点过于相近不添加
+    /// </summary>
+    /// <param name="point"></param>
+    /// <returns></returns>
+    bool ValidPoint(Point point, List<Point> points)
+    {
+        double threshold = 0.01;
+        if (points.Count <= 1) return true;
+        foreach (var existingPoint in points)
+        {
+            var value = Distance(point, existingPoint);
+            if (value < threshold)
+            {
+                Debug.WriteLine($"value_{value}  point_x_{point.X}_y{point.Y} existingPoint_x_{existingPoint.X} y_{existingPoint.Y}");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    double Distance(Point p1, Point p2)
+    {
+        return Math.Sqrt(Math.Pow(p1.X - p2.X, 2) + Math.Pow(p1.Y - p2.Y, 2));
+    }
+
 }
 
 #endregion
@@ -470,8 +501,6 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
 [TemplatePart(Name = NamePartScrollView, Type = typeof(ScrollViewer))]
 [TemplatePart(Name = NamePartViewBox, Type = typeof(Viewbox))]
 [TemplatePart(Name = NamePartCanvas, Type = typeof(InkCanvas))]
-//[TemplatePart(Name = NamePartShapePreviewer, Type = typeof(ShapeBase))]
-//[TemplatePart(Name = NamePartShapeMarkder, Type = typeof(ShapeBase))]
 public class ImageEx : ContentControl
 {
     //定义控件模板中的各种部分，包括主面板、滚动视图、视图框、画布和形状预览器、标记器。
@@ -742,7 +771,7 @@ public class ImageEx : ContentControl
             ShapePreviewer = Template.FindName(NamePartShapePreviewer, this) as ShapeBase;
             ShapeMarker = Template.FindName(NamePartShapeMarkder, this) as ShapeBase;
 
-            
+
         }));
 
         //图像处理
@@ -1006,7 +1035,5 @@ public class ImageEx : ContentControl
     #endregion
 
     #endregion
-
-
 
 }

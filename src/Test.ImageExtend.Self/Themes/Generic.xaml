@@ -97,6 +97,7 @@
                                             Fill="Red"
                                             Opacity="0.5"
                                             Stroke="Blue"
+                                            StrokeThickness="1"
                                             Visibility="Collapsed" />
 
                                         <shapeEx:RectangleShape
@@ -107,29 +108,33 @@
                                             Stroke="Red"
                                             StrokeThickness="5" />
 
-                                        <shapeEx:LineShape x:Name="PART_SHAPE_LINE_PREVIEWER" StrokeThickness="1" Stroke="Yellow" />
-
-                                        <shapeEx:LineShape x:Name="PART_SHAPE_LINE_MARKER" StrokeThickness="5" Stroke="Green"/>
-
-                                        <shapeEx:PointShape
-                                            x:Name="PART_SHAPE_POINT_PREVIEWER"
+                                        <shapeEx:LineShape
+                                            x:Name="PART_SHAPE_LINE_PREVIEWER"
                                             Stroke="Yellow"
+                                            StrokeThickness="1" />
+
+                                        <shapeEx:LineShape
+                                            x:Name="PART_SHAPE_LINE_MARKER"
+                                            Stroke="Green"
                                             StrokeThickness="5" />
 
-                                        <shapeEx:PointShape
-                                            x:Name="PART_SHAPE_POINT_MARKER"
-                                            Stroke="Green"
-                                            StrokeThickness="15" />
+                                        <shapeEx:PointShape x:Name="PART_SHAPE_POINT_PREVIEWER" Fill="Yellow" />
+
+                                        <shapeEx:PointShape x:Name="PART_SHAPE_POINT_MARKER" Fill="Green" />
 
                                         <shapeEx:PolygonShape
                                             x:Name="PART_SHAPE_POLYGON_MARKER"
+                                            Fill="Red"
+                                            Opacity="0.5"
                                             Stroke="Blue"
                                             StrokeThickness="10" />
 
                                         <shapeEx:PolygonShape
                                             x:Name="PART_SHAPE_POLYGON_PREVIEWER"
-                                            Stroke="Orange"
-                                            StrokeThickness="10" />
+                                            Fill="Black"
+                                            Opacity="0.5"
+                                            Stroke="Red"
+                                            StrokeThickness="5" />
 
                                     </InkCanvas>
                                 </imageEx:SimplePanel>

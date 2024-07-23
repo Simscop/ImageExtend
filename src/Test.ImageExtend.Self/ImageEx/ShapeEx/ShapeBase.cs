@@ -1,8 +1,4 @@
-﻿using System.Diagnostics;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Ink;
-using System.Windows.Input;
+﻿using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
 //using Lift.UI.Tools.Extension;
@@ -13,6 +9,7 @@ namespace Test.ImageExtend.ImageEx.ShapeEx;
 
 // todo 线宽改成显示像素，而不是实际宽度
 // todo，初始化多了一个点的绘制
+//todo, clear&draw的重写
 
 public abstract class ShapeBase : Shape
 {
@@ -63,7 +60,7 @@ public abstract class ShapeBase : Shape
     /// <summary>
     /// 切换选中状态
     /// </summary>
-    public virtual void SetSelected()=> SetSelected(Parent as InkCanvas);
+    public virtual void SetSelected() => SetSelected(Parent as InkCanvas);
 
     /// <summary>
     /// 当选中后
@@ -167,38 +164,49 @@ public class RectangleShape : ShapeBase
 
     public override void Draw(InkCanvas canvas)
     {
-        Refresh();//会刷新形状的尺寸和位置
-        canvas.Children.Add(this);//添加到画布
+        throw new NotImplementedException();
+
+        //Refresh();//会刷新形状的尺寸和位置
+        //canvas.Children.Add(this);//添加到画布
     }
 
     internal override RectangleShape Clone()
     {
-        var clone = new RectangleShape();
+        throw new NotImplementedException();
 
-        typeof(RectangleShape).GetProperties()
-            ?.Where(prop => prop.CanWrite)
-            ?.Where(prop => new List<string>()
-            {
-                "Width","Height","PointStart","PointEnd","Fill","Strokex"
-            }.Contains(prop.Name))
-            ?.Do(prop => prop.SetValue(clone, prop.GetValue(this)));
+        //var clone = new RectangleShape();
+        //typeof(RectangleShape).GetProperties()
+        //    ?.Where(prop => prop.CanWrite)
+        //    ?.Where(prop => new List<string>()
+        //    {
+        //        "Width","Height","PointStart","PointEnd","Fill","Strokex"
+        //    }.Contains(prop.Name))
+        //    ?.Do(prop => prop.SetValue(clone, prop.GetValue(this)));
 
-        return clone;
+        //return clone;
     }
 }
 
 public class LineShape : ShapeBase
 {
-    protected override Geometry DefiningGeometry => new LineGeometry(PointStart, PointEnd);
+    private LineGeometry lineGeometry;
+
+    public LineShape()
+    {
+        lineGeometry = new LineGeometry();
+    }
+
+    protected override Geometry DefiningGeometry => lineGeometry;
 
     public override void Refresh()
     {
-        //Stroke = new SolidColorBrush(Colors.GreenYellow);
+        lineGeometry.StartPoint = PointStart;
+        lineGeometry.EndPoint = PointEnd;
     }
 
     public override void Draw(InkCanvas canvas)
     {
-        canvas.Children.Add(this);
+        throw new NotImplementedException();
     }
 
     internal override ShapeBase Clone()
@@ -209,18 +217,32 @@ public class LineShape : ShapeBase
 
 public class PointShape : ShapeBase
 {
-    protected override Geometry DefiningGeometry => new EllipseGeometry();
+    //protected override Geometry DefiningGeometry => new EllipseGeometry();
+
+    private EllipseGeometry ellipseGeometry;
+
+    public PointShape()
+    {
+        ellipseGeometry = new EllipseGeometry();
+    }
+
+    protected override Geometry DefiningGeometry => ellipseGeometry;
 
     public override void Refresh()
     {
-        InkCanvas.SetLeft(this, PointEnd.X-5);
-        InkCanvas.SetTop(this, PointEnd.Y-5);
+        double radius = 5;
+        ellipseGeometry.Center = PointStart;
+        ellipseGeometry.RadiusX = radius;
+        ellipseGeometry.RadiusY = radius;
+        Width = radius * 2;
+        Height = radius * 2;
+        InkCanvas.SetLeft(this, PointEnd.X - radius);
+        InkCanvas.SetTop(this, PointEnd.Y - radius);
     }
 
     public override void Draw(InkCanvas canvas)
     {
-        Refresh();
-        canvas.Children.Add(this);
+        throw new NotImplementedException();
     }
 
     internal override ShapeBase Clone()
@@ -231,7 +253,7 @@ public class PointShape : ShapeBase
 
 public class PolygonShape : ShapeBase
 {
-    public List<Point> PolygonPoints { get; private set; } = new List<Point>();
+    public List<Point> Points { get; set; } = new List<Point>();
 
     protected override Geometry DefiningGeometry
     {
@@ -240,42 +262,32 @@ public class PolygonShape : ShapeBase
             var geometry = new StreamGeometry();
             using (var context = geometry.Open())
             {
-                if (PolygonPoints.Count > 0)
+                if (Points.Count > 0)
                 {
-                    context.BeginFigure(PolygonPoints[0], true, false);
-                    context.PolyLineTo(PolygonPoints.Skip(1).ToList(), true, true);
+                    context.BeginFigure(Points.First(), true, false);
+                    context.PolyLineTo(Points.Skip(1).ToList(), true, true);
                 }
             }
+            geometry.Freeze();
             return geometry;
         }
     }
 
+    public override void Refresh() => InvalidateVisual();
+
     public void ShowPoint(List<Point> points)
     {
-        PolygonPoints=points;
+        Points = points;
         Refresh();
-    }
-
-    public override void Refresh()
-    {
-        Stroke = new SolidColorBrush(Colors.GreenYellow);
-        StrokeThickness = 2;
-        //base.Refresh();
     }
 
     public override void Draw(InkCanvas canvas)
     {
-        Refresh();
-        canvas.Children.Add(this);
+        throw new NotImplementedException();
     }
 
     internal override ShapeBase Clone()
     {
-        var clone = new PolygonShape();
-        foreach (var point in PolygonPoints)
-        {
-            clone.PolygonPoints.Add(point);
-        }
-        return clone;
+        throw new NotImplementedException();
     }
 }
