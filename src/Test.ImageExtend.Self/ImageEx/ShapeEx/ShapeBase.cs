@@ -121,8 +121,8 @@ public abstract class ShapeBase : Shape
         Height = Math.Abs(start.Y - end.Y);
 
         var position = new Point(Math.Min(start.X, end.X), Math.Min(start.Y, end.Y));
-        InkCanvas.SetLeft(this, position.X);
-        InkCanvas.SetTop(this, position.Y);
+        InkCanvas.SetLeft(this, position.X + 3);
+        InkCanvas.SetTop(this, position.Y + 3);
     }
 
     /// <summary>
@@ -200,8 +200,12 @@ public class LineShape : ShapeBase
 
     public override void Refresh()
     {
-        lineGeometry.StartPoint = PointStart;
-        lineGeometry.EndPoint = PointEnd;
+        var start = PointStart;
+        var end = PointEnd;
+        lineGeometry.StartPoint = start;
+        lineGeometry.EndPoint = end;
+        InkCanvas.SetLeft(this, (end.X - start.X) * 0.01);
+        InkCanvas.SetTop(this, (end.Y - start.Y) * 0.01);
     }
 
     public override void Draw(InkCanvas canvas)
@@ -217,8 +221,6 @@ public class LineShape : ShapeBase
 
 public class PointShape : ShapeBase
 {
-    //protected override Geometry DefiningGeometry => new EllipseGeometry();
-
     private EllipseGeometry ellipseGeometry;
 
     public PointShape()
@@ -234,10 +236,8 @@ public class PointShape : ShapeBase
         ellipseGeometry.Center = PointStart;
         ellipseGeometry.RadiusX = radius;
         ellipseGeometry.RadiusY = radius;
-        Width = radius * 2;
-        Height = radius * 2;
-        InkCanvas.SetLeft(this, PointEnd.X - radius);
-        InkCanvas.SetTop(this, PointEnd.Y - radius);
+        InkCanvas.SetLeft(this, PointEnd.X - radius );
+        InkCanvas.SetTop(this, PointEnd.Y - radius );
     }
 
     public override void Draw(InkCanvas canvas)
