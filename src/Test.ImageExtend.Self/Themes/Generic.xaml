@@ -124,17 +124,18 @@
 
                                         <shapeEx:PolygonShape
                                             x:Name="PART_SHAPE_POLYGON_MARKER"
-                                            Fill="Red"
-                                            Opacity="0.5"
-                                            Stroke="Blue"
-                                            StrokeThickness="10" />
-
-                                        <shapeEx:PolygonShape
-                                            x:Name="PART_SHAPE_POLYGON_PREVIEWER"
+                                            ContextMenu="{TemplateBinding MarkerMenu}"
                                             Fill="Black"
                                             Opacity="0.5"
                                             Stroke="Red"
-                                            StrokeThickness="5" />
+                                            StrokeThickness="2" />
+
+                                        <shapeEx:PolygonShape
+                                            x:Name="PART_SHAPE_POLYGON_PREVIEWER"
+                                            Fill="Red"
+                                            Opacity="0.5"
+                                            Stroke="Blue"
+                                            StrokeThickness="2" />
 
                                     </InkCanvas>
                                 </imageEx:SimplePanel>

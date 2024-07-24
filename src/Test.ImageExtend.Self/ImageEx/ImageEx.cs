@@ -231,8 +231,6 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
             AssociatedObject.ShapeMarker!.Visibility = Visibility.Visible;
 
             AssociatedObject.ShapeMarker!.Refresh();
-
-            Debug.WriteLine($"Up_p X_{AssociatedObject.ShapePreviewer!.PointStart.X.ToString("0.00")}  " + $"Y_{AssociatedObject.ShapePreviewer!.PointStart.Y.ToString("0.00")}");
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("LINE"))
         {
@@ -255,8 +253,6 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
             AssociatedObject.ShapeMarker!.Visibility = Visibility.Visible;
 
             AssociatedObject.ShapeMarker!.Refresh();
-
-            Debug.WriteLine($"Up_p X_{AssociatedObject.ShapePreviewer!.PointStart.X.ToString("0.00")}  " + $"Y_{AssociatedObject.ShapePreviewer!.PointStart.Y.ToString("0.00")}");
 
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("POINT"))
@@ -304,8 +300,6 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
                     _flagPolygonReset = false;
                 }
             }
-
-            Debug.WriteLine($"UP {_imageEXpolygonPoints.Count}");
         }
     }
 
@@ -335,10 +329,13 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("LINE"))
         {
-            if (e.LeftButton != MouseButtonState.Pressed
-                 || e.RightButton == MouseButtonState.Pressed) return;
+            if (e.LeftButton == MouseButtonState.Pressed
+                 || e.RightButton != MouseButtonState.Pressed) return;
+
+            AssociatedObject.ShapePreviewer!.Visibility = Visibility.Collapsed;
 
             AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas);
+            if (!ValidLine(AssociatedObject.ShapePreviewer!.PointStart, AssociatedObject.ShapePreviewer!.PointEnd)) return;
 
             _flagLine = true;
             AssociatedObject.Canvas!.Cursor = Cursors.Cross;
@@ -368,10 +365,6 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
             {
                 if (ValidPoint(point, _imageEXpolygonPoints))
                     _imageEXpolygonPoints.Add(point);
-                else
-                {
-                    Debug.WriteLine("*********************************************ValidFalse");
-                }
 
                 _flagPolygon = false;
             }
@@ -380,8 +373,6 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
                 _imageEXpolygonPoints[_imageEXpolygonPoints.Count - 1] = point;
             }
             polygonShape.ShowPoint(_imageEXpolygonPoints);
-
-            Debug.WriteLine($"Move {_imageEXpolygonPoints.Count}");
         }
     }
 
@@ -402,13 +393,11 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
                 || e.RightButton != MouseButtonState.Pressed) return;
 
             AssociatedObject.ShapePreviewer!.PointStart = e.GetPosition(AssociatedObject.Canvas);
-
-            Debug.WriteLine($"DOWN_p X_{AssociatedObject.ShapePreviewer!.PointStart.X.ToString("0.00")}  " + $"Y_{AssociatedObject.ShapePreviewer!.PointStart.Y.ToString("0.00")}");
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("LINE"))
         {
-            if (e.LeftButton != MouseButtonState.Pressed
-                || e.RightButton == MouseButtonState.Pressed) return;//改成左键操作
+            if (e.LeftButton == MouseButtonState.Pressed
+                || e.RightButton != MouseButtonState.Pressed) return;
 
             AssociatedObject.ShapePreviewer!.PointStart = e.GetPosition(AssociatedObject.Canvas);
 
@@ -425,6 +414,9 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("POLYGON"))
         {
+            if (e.LeftButton != MouseButtonState.Pressed
+                || e.RightButton == MouseButtonState.Pressed) return;
+
             var polygonShape = AssociatedObject.ShapePreviewer as PolygonShape;
             if (polygonShape == null) return;
             if (_flagPolygonReset)
@@ -441,8 +433,6 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
 
             _flagPolygon = true;
             _flagPolygonReset = false;
-
-            Debug.WriteLine($"DOWN {_imageEXpolygonPoints.Count}");
         }
     }
 
@@ -476,13 +466,15 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         foreach (var existingPoint in points)
         {
             var value = Distance(point, existingPoint);
-            if (value < threshold)
-            {
-                Debug.WriteLine($"value_{value}  point_x_{point.X}_y{point.Y} existingPoint_x_{existingPoint.X} y_{existingPoint.Y}");
-                return false;
-            }
+            if (value < threshold) return false;
         }
         return true;
+    }
+
+    bool ValidLine(Point start, Point end)
+    {
+        double threshold = 5;
+        return Distance(start, end) > threshold;
     }
 
     double Distance(Point p1, Point p2)
@@ -791,8 +783,6 @@ public class ImageEx : ContentControl
                     dialog.BrightnessUpdated += (sender, args) => { _brightness = args; ApplyImageProcess(); };
                     dialog.ShowDialog();
                 }
-
-                Debug.WriteLine($"_gamma_{_gamma}  _contrast_{_contrast}  _brightness_{_brightness}");
             }
             else if (command == ResetImageProcess)
             {
@@ -874,8 +864,6 @@ public class ImageEx : ContentControl
 
         var c = GetImageColorFromPosition(x, y);
         OnCursorChanged?.Invoke((x, y, c));
-
-        Debug.WriteLine("OnCanvasCursorChanged");
     }
 
     /// <summary>
