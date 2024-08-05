@@ -89,7 +89,6 @@
                                                     </ContextMenu>
                                                 </Image.ContextMenu>
                                             </Image>
-
                                         </Grid>
 
                                         <shapeEx:RectangleShape
@@ -97,8 +96,7 @@
                                             Fill="Red"
                                             Opacity="0.5"
                                             Stroke="Blue"
-                                            StrokeThickness="1"
-                                            Visibility="Collapsed" />
+                                            StrokeThickness="5" />
 
                                         <shapeEx:RectangleShape
                                             x:Name="PART_SHAPE_RECT_MARKER"
@@ -123,19 +121,18 @@
                                         <shapeEx:PointShape x:Name="PART_SHAPE_POINT_MARKER" Fill="Green" />
 
                                         <shapeEx:PolygonShape
-                                            x:Name="PART_SHAPE_POLYGON_MARKER"
-                                            ContextMenu="{TemplateBinding MarkerMenu}"
-                                            Fill="Black"
-                                            Opacity="0.5"
-                                            Stroke="Red"
-                                            StrokeThickness="2" />
-
-                                        <shapeEx:PolygonShape
                                             x:Name="PART_SHAPE_POLYGON_PREVIEWER"
                                             Fill="Red"
                                             Opacity="0.5"
                                             Stroke="Blue"
-                                            StrokeThickness="2" />
+                                            StrokeThickness="1" />
+
+                                        <shapeEx:PolygonShape
+                                            x:Name="PART_SHAPE_POLYGON_MARKER"
+                                            ContextMenu="{TemplateBinding MarkerMenu}"
+                                            Opacity="0.5"
+                                            Stroke="Red"
+                                            StrokeThickness="3" />
 
                                     </InkCanvas>
                                 </imageEx:SimplePanel>

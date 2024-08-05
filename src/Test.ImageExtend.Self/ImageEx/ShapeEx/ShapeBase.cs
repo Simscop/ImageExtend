@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Diagnostics;
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
 //using Lift.UI.Tools.Extension;
@@ -119,10 +120,9 @@ public abstract class ShapeBase : Shape
         var end = PointEnd;
         Width = Math.Abs(start.X - end.X);
         Height = Math.Abs(start.Y - end.Y);
-
         var position = new Point(Math.Min(start.X, end.X), Math.Min(start.Y, end.Y));
-        InkCanvas.SetLeft(this, position.X + 3);
-        InkCanvas.SetTop(this, position.Y + 3);
+        InkCanvas.SetLeft(this, position.X);
+        InkCanvas.SetTop(this, position.Y);
     }
 
     /// <summary>
@@ -165,9 +165,6 @@ public class RectangleShape : ShapeBase
     public override void Draw(InkCanvas canvas)
     {
         throw new NotImplementedException();
-
-        //Refresh();//会刷新形状的尺寸和位置
-        //canvas.Children.Add(this);//添加到画布
     }
 
     internal override RectangleShape Clone()
@@ -264,7 +261,7 @@ public class PolygonShape : ShapeBase
             {
                 if (Points.Count > 0)
                 {
-                    context.BeginFigure(Points.First(), true, false);
+                    context.BeginFigure(Points.First(), true, true);
                     context.PolyLineTo(Points.Skip(1).ToList(), true, true);
                 }
             }
@@ -275,7 +272,7 @@ public class PolygonShape : ShapeBase
 
     public override void Refresh() => InvalidateVisual();
 
-    public void ShowPoint(List<Point> points)
+    public void RefreshPolygonPoints(List<Point> points)
     {
         Points = points;
         Refresh();

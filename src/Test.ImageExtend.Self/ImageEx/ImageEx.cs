@@ -4,7 +4,6 @@ using Microsoft.Xaml.Behaviors;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -139,23 +138,6 @@ public class ImageExViewerBehavior : Behavior<ImageEx>
 /// </summary>
 public class ImageExDrawBehavior : Behavior<ImageEx>
 {
-    private bool _flagLine = false;
-    private bool _flagLineDown = false;
-    private bool _flagRect = false;
-    private bool _flagPoint = false;
-    private bool _flagPolygon = false;
-    private bool _flagPolygonReset = false;
-    private int clickCount = 0;
-    private const int DoubleClickTime = 400;
-    private System.Timers.Timer? clickTimer;
-    private List<Point> _imageEXpolygonPoints = new List<Point>();
-
-    private void ClickTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
-    {
-        clickTimer?.Stop();
-        clickCount = 0;
-    }
-
     /// <summary>
     /// 将 Loaded 事件绑定到 AssociatedObject
     /// </summary>
@@ -185,6 +167,9 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
 
         clickTimer = new System.Timers.Timer(DoubleClickTime);
         clickTimer.Elapsed += ClickTimerElapsed;
+
+        _horGridCount = AssociatedObject.GridRow;
+        _verGridCount = AssociatedObject.GridCol;
     }
 
     /// <summary>
@@ -192,10 +177,7 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
-    private void OnCanvasMouseLeave(object sender, MouseEventArgs e)
-    {
-        Debug.WriteLine($"{AssociatedObject.ShapePreviewer?.ToString()}__OnCanvasMouseLeave");
-    }
+    private void OnCanvasMouseLeave(object sender, MouseEventArgs e) { }
 
     /// <summary>
     /// 处理在画布上的鼠标事件以绘制形状
@@ -205,13 +187,14 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
     /// <param name="e"></param>
     private void OnCanvasPreviewMouseUp(object sender, MouseButtonEventArgs e)
     {
-        if (AssociatedObject.ShapePreviewer == null
-            || AssociatedObject.ShapeMarker == null) return;
-
-        Debug.WriteLine($"{AssociatedObject.ShapePreviewer.ToString()}__OnCanvasPreviewMouseUp");
-
+        if (AssociatedObject.ShapePreviewer == null|| AssociatedObject.ShapeMarker == null) return;
+            
         if (AssociatedObject.NamePartShapeMarkder.Contains("RECT"))
         {
+            //获取点击位置对应的网格行列
+            var pos = CalculateGridPosition(e.GetPosition(AssociatedObject.Canvas), AssociatedObject.ShapePreviewer!.PointStart, _gridSpacingX, _gridSpacingY);
+            Debug.WriteLine($"pos_{pos}");
+
             if (!_flagRect) return;
             _flagRect = false;
 
@@ -229,8 +212,16 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
             AssociatedObject.ShapeMarker!.PointStart = AssociatedObject.ShapePreviewer!.PointStart;
             AssociatedObject.ShapeMarker!.PointEnd = AssociatedObject.ShapePreviewer!.PointEnd;
             AssociatedObject.ShapeMarker!.Visibility = Visibility.Visible;
-
             AssociatedObject.ShapeMarker!.Refresh();
+
+            if (_horGridCount != 0 || _verGridCount != 0)
+            {
+                var start = AssociatedObject.ShapeMarker!.PointStart;
+                var end = AssociatedObject.ShapeMarker!.PointEnd;
+                double width = Math.Abs(start.X - end.X);
+                double height = Math.Abs(start.Y - end.Y);
+                AssociatedObject.ShapeMarker!.Fill = GridFillBrush(width, height, _fillEndPoint);
+            }
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("LINE"))
         {
@@ -251,7 +242,6 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
             AssociatedObject.ShapeMarker!.PointStart = AssociatedObject.ShapePreviewer!.PointStart;
             AssociatedObject.ShapeMarker!.PointEnd = AssociatedObject.ShapePreviewer!.PointEnd;
             AssociatedObject.ShapeMarker!.Visibility = Visibility.Visible;
-
             AssociatedObject.ShapeMarker!.Refresh();
 
         }
@@ -271,31 +261,51 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("POLYGON"))
         {
-            clickCount++;
-            if (clickCount == 1)
+            //获取点击位置对应的网格行列
+            if (e.LeftButton != MouseButtonState.Pressed || e.RightButton == MouseButtonState.Pressed)
+            {
+                //需判断是否在画线内部，todo
+                var pos = CalculateGridPosition(e.GetPosition(AssociatedObject.Canvas), _constractPoint, _gridSpacingX, _gridSpacingY);
+                Debug.WriteLine($"pos_{pos}");
+            }
+
+            _clickCount++;
+            if (_clickCount == 1)
             {
                 clickTimer?.Start();
             }
-            else if (clickCount == 2)
+            else if (_clickCount == 2)
             {
                 clickTimer?.Stop();
-                clickCount = 0;
+                _clickCount = 0;
 
                 AssociatedObject.ShapePreviewer!.Visibility = Visibility.Collapsed;
                 AssociatedObject.ShapeMarker!.Visibility = Visibility.Visible;
 
-                var polygonMarker = AssociatedObject.ShapeMarker as PolygonShape;
-                if (polygonMarker == null) return;
-
-                if (_imageEXpolygonPoints.Count >= 3)
+                if (_polygonPoints.Count >= 3)
                 {
-                    _imageEXpolygonPoints.Add(_imageEXpolygonPoints.First());
-                    polygonMarker.ShowPoint(_imageEXpolygonPoints);
+                    var sortsPoints = SortPointsToFormPolygon(_polygonPoints);
+                    var polygonMarker = AssociatedObject.ShapeMarker as PolygonShape;
+                    polygonMarker?.RefreshPolygonPoints(sortsPoints);
+
+                    if (_horGridCount != 0 || _verGridCount != 0)
+                    {
+                        double minX = sortsPoints.Min(p => p.X);
+                        double maxX = sortsPoints.Max(p => p.X);
+                        double minY = sortsPoints.Min(p => p.Y);
+                        double maxY = sortsPoints.Max(p => p.Y);
+                        double width = maxX - minX;
+                        double height = maxY - minY;
+                        AssociatedObject.ShapeMarker!.Fill = GridFillBrush(width, height, _fillEndPoint);
+
+                        _constractPoint = new Point(minX, minY);
+                    }
+        
                     _flagPolygonReset = true;
                 }
                 else
                 {
-                    _imageEXpolygonPoints.Clear();
+                    _polygonPoints.Clear();
                     AssociatedObject.ShapeMarker!.Visibility = Visibility.Collapsed;
                     _flagPolygonReset = false;
                 }
@@ -311,17 +321,16 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
     /// <param name="e"></param>
     private void OnCanvasPreviewMouseMove(object sender, MouseEventArgs e)
     {
-        if (AssociatedObject.ShapePreviewer == null
-            || AssociatedObject.ShapeMarker == null) return;
+        if (AssociatedObject.ShapePreviewer == null|| AssociatedObject.ShapeMarker == null) return;
 
         if (AssociatedObject.NamePartShapeMarkder.Contains("RECT"))
         {
-            if (e.LeftButton == MouseButtonState.Pressed
-                || e.RightButton != MouseButtonState.Pressed) return;
+            if (e.LeftButton == MouseButtonState.Pressed|| e.RightButton != MouseButtonState.Pressed) return;
+
+            _flagRect = true;
 
             AssociatedObject.ShapePreviewer!.PointEnd = e.GetPosition(AssociatedObject.Canvas);
 
-            _flagRect = true;
             AssociatedObject.Canvas!.Cursor = Cursors.Cross;
 
             AssociatedObject.ShapePreviewer!.Visibility = Visibility.Visible;
@@ -329,8 +338,7 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("LINE"))
         {
-            if (e.LeftButton == MouseButtonState.Pressed
-                 || e.RightButton != MouseButtonState.Pressed) return;
+            if (e.LeftButton == MouseButtonState.Pressed|| e.RightButton != MouseButtonState.Pressed) return;
 
             AssociatedObject.ShapePreviewer!.Visibility = Visibility.Collapsed;
 
@@ -356,23 +364,19 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
             if (_flagPolygonReset) return;
 
             var polygonShape = AssociatedObject.ShapePreviewer as PolygonShape;
-            if (polygonShape == null) return;
-            if (polygonShape.Points.Count == 0) return;
+            if (polygonShape?.Points.Count == 0) return;
 
             var point = e.GetPosition(AssociatedObject.Canvas);
-
             if (_flagPolygon)
             {
-                if (ValidPoint(point, _imageEXpolygonPoints))
-                    _imageEXpolygonPoints.Add(point);
-
+                if (ValidPoint(point, _polygonPoints)) _polygonPoints.Add(point);
                 _flagPolygon = false;
             }
             else
             {
-                _imageEXpolygonPoints[_imageEXpolygonPoints.Count - 1] = point;
+                _polygonPoints[_polygonPoints.Count - 1] = point;
             }
-            polygonShape.ShowPoint(_imageEXpolygonPoints);
+            polygonShape?.RefreshPolygonPoints(_polygonPoints);
         }
     }
 
@@ -385,22 +389,16 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
     private void OnCanvasPreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (AssociatedObject.ShapePreviewer == null || AssociatedObject.ShapeMarker == null) return;
-        Debug.WriteLine($"{AssociatedObject.ShapePreviewer.ToString()}__OnCanvasPreviewMouseDown");
 
         if (AssociatedObject.NamePartShapeMarkder.Contains("RECT"))
         {
-            if (e.LeftButton == MouseButtonState.Pressed
-                || e.RightButton != MouseButtonState.Pressed) return;
-
+            if (e.LeftButton == MouseButtonState.Pressed|| e.RightButton != MouseButtonState.Pressed) return;
             AssociatedObject.ShapePreviewer!.PointStart = e.GetPosition(AssociatedObject.Canvas);
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("LINE"))
         {
-            if (e.LeftButton == MouseButtonState.Pressed
-                || e.RightButton != MouseButtonState.Pressed) return;
-
+            if (e.LeftButton == MouseButtonState.Pressed|| e.RightButton != MouseButtonState.Pressed) return;
             AssociatedObject.ShapePreviewer!.PointStart = e.GetPosition(AssociatedObject.Canvas);
-
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("POINT"))
         {
@@ -414,26 +412,54 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("POLYGON"))
         {
-            if (e.LeftButton != MouseButtonState.Pressed
-                || e.RightButton == MouseButtonState.Pressed) return;
+            if (e.LeftButton != MouseButtonState.Pressed || e.RightButton == MouseButtonState.Pressed) return;
 
-            var polygonShape = AssociatedObject.ShapePreviewer as PolygonShape;
-            if (polygonShape == null) return;
             if (_flagPolygonReset)
             {
-                _imageEXpolygonPoints.Clear();
+                _polygonPoints.Clear();
                 AssociatedObject.ShapeMarker!.Visibility = Visibility.Collapsed;
             }
-
             AssociatedObject.ShapePreviewer!.Visibility = Visibility.Visible;
 
             var point = e.GetPosition(AssociatedObject.Canvas);
-            if (ValidPoint(point, _imageEXpolygonPoints)) _imageEXpolygonPoints.Add(point);
-            polygonShape.ShowPoint(_imageEXpolygonPoints);
+            if (ValidPoint(point, _polygonPoints)) _polygonPoints.Add(point);
+            var polygonShape = AssociatedObject.ShapePreviewer as PolygonShape;
+            polygonShape?.RefreshPolygonPoints(_polygonPoints);
 
             _flagPolygon = true;
             _flagPolygonReset = false;
         }
+    }
+
+    //marker标记
+    private bool _flagLine = false;
+    private bool _flagRect = false;
+    private bool _flagPoint = false;
+    private bool _flagPolygon = false;
+    private bool _flagPolygonReset = false;
+    private int _clickCount = 0;
+    private const int DoubleClickTime = 400;
+    private System.Timers.Timer? clickTimer;
+    private List<Point> _polygonPoints = new();
+
+    private int _horGridCount = 0;//y，网格数量输入
+    private int _verGridCount = 0;//x
+    (int, int) _fillEndPoint = new(2, 5);
+
+   static double _gridSpacingX = 0;//获取当前网格行列数
+   static double _gridSpacingY = 0;
+    Point _constractPoint = new();
+
+    /// <summary>
+    /// 多边形
+    /// 添加双击事件
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void ClickTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
+    {
+        clickTimer?.Stop();
+        _clickCount = 0;
     }
 
     /// <summary>
@@ -443,7 +469,7 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
     /// <returns>
     /// true - 合法
     /// </returns>
-    bool ValidLocation(MouseEventArgs e)
+    private bool ValidLocation(MouseEventArgs e)
     {
         // valid location
         var pos = e.GetPosition(AssociatedObject.Canvas);
@@ -455,11 +481,11 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
     }
 
     /// <summary>
-    /// 点过于相近不添加
+    /// 多边形，点过于相近不添加
     /// </summary>
     /// <param name="point"></param>
     /// <returns></returns>
-    bool ValidPoint(Point point, List<Point> points)
+    private bool ValidPoint(Point point, List<Point> points)
     {
         double threshold = 0.01;
         if (points.Count <= 1) return true;
@@ -471,15 +497,120 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         return true;
     }
 
-    bool ValidLine(Point start, Point end)
+    /// <summary>
+    /// 线段，点过于相近不添加
+    /// </summary>
+    /// <param name="start"></param>
+    /// <param name="end"></param>
+    /// <returns></returns>
+    private bool ValidLine(Point start, Point end)
     {
         double threshold = 5;
         return Distance(start, end) > threshold;
     }
 
-    double Distance(Point p1, Point p2)
+    /// <summary>
+    /// 计算线的两点间距离
+    /// </summary>
+    /// <param name="p1"></param>
+    /// <param name="p2"></param>
+    /// <returns></returns>
+    private double Distance(Point p1, Point p2)
     {
         return Math.Sqrt(Math.Pow(p1.X - p2.X, 2) + Math.Pow(p1.Y - p2.Y, 2));
+    }
+
+    /// <summary>
+    /// 多边形点集合排序，避免交叉
+    /// </summary>
+    /// <param name="points"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    private List<Point> SortPointsToFormPolygon(List<Point> points)
+    {
+        if (points == null || points.Count < 3)
+        {
+            //return sortedPoints;
+            throw new ArgumentException("多边形必须至少有三个点。");
+        }
+
+        // 找到最低且最左的点作为参考点
+        Point referencePoint = points.OrderBy(p => p.Y).ThenBy(p => p.X).First();
+
+        // 按照与参考点的极角排序
+        List<Point> sortedPoints = points.OrderBy(p => Math.Atan2(p.Y - referencePoint.Y, p.X - referencePoint.X)).ToList();
+
+        return sortedPoints;
+    }
+
+    /// <summary>
+    /// 绘制网格&填充
+    /// </summary>
+    /// <param name="width"></param>
+    /// <param name="height"></param>
+    /// <param name="fillEndPoint"></param>
+    /// <param name="fillColor"></param>
+    /// <returns></returns>
+    private Brush GridFillBrush(double width, double height, (int x, int y) fillEndPoint)
+    {
+        VisualBrush gridBrush = new VisualBrush();
+        _gridSpacingX = width / _verGridCount;
+        _gridSpacingY = height / _horGridCount;
+        if (_gridSpacingX > 0 && _gridSpacingY > 0)
+        {
+            DrawingVisual gridVisual = new DrawingVisual();
+            using (DrawingContext dc = gridVisual.RenderOpen())
+            {
+                Pen gridPen = new Pen(AssociatedObject.GridColor, AssociatedObject.GridThickness) { DashStyle = new DashStyle(new double[] { 2, 2 }, 0) };
+
+                for (int x = 0; x <= _verGridCount; x++)
+                {
+                    for (int y = 0; y <= _horGridCount; y++)
+                    {
+                        double cellX = x * _gridSpacingX;
+                        double cellY = y * _gridSpacingY;
+
+                        // 绘制填充矩形
+                        if (y < fillEndPoint.y - 1 || (y == fillEndPoint.y - 1 && x < fillEndPoint.x))
+                            dc.DrawRectangle(AssociatedObject.GridFillColor, null, new Rect(cellX, cellY, _gridSpacingX, _gridSpacingY));
+
+                        // 绘制垂直线，首尾不绘制
+                        if (x > 0 && cellX != width)
+                            dc.DrawLine(gridPen, new Point(cellX, 0), new Point(cellX, height));
+
+                        // 绘制水平线，首尾不绘制
+                        if (y > 0 && cellY != height)
+                            dc.DrawLine(gridPen, new Point(0, cellY), new Point(width, cellY));
+                    }
+                }
+            }
+            gridBrush = new VisualBrush(gridVisual)
+            {
+                Stretch = Stretch.None,
+                AlignmentX = AlignmentX.Left,
+                AlignmentY = AlignmentY.Top,
+                TileMode = TileMode.None
+            };
+        }
+        return gridBrush;
+    }
+
+    /// <summary>
+    /// 根据点击位置计算网格位置
+    /// col-x;row-y
+    /// </summary>
+    /// <param name="clickPosition"></param>
+    /// <param name="gridSpacingX"></param>
+    /// <param name="gridSpacingY"></param>
+    /// <param name="constractPoint"></param>
+    /// <returns></returns>
+    private (int x, int y) CalculateGridPosition(Point clickPosition, Point constractPoint, double gridSpacingX, double gridSpacingY)
+    {
+        if (gridSpacingX == 0 || gridSpacingY == 0) return (-1, -1);
+        int row = (int)Math.Floor((clickPosition.Y - constractPoint.Y) / gridSpacingY) + 1;
+        int column = (int)Math.Floor((clickPosition.X - constractPoint.X) / gridSpacingX) + 1;
+        if ((row > _horGridCount || row <= 0) || (column > _verGridCount || column <= 0)) return (-1, -1);
+        return (column, row);
     }
 
 }
@@ -746,7 +877,7 @@ public class ImageEx : ContentControl
             else throw new NotImplementedException();
         }));
 
-        //mark标记
+        //Mark标记
         CommandBindings.Add(new CommandBinding(MarkeronImageCommand, (obj, args) =>
         {
             if (args.Parameter is not string command) return;
@@ -760,10 +891,12 @@ public class ImageEx : ContentControl
             NamePartShapePreviewer = GetShapeNameandCurrentType(true, command);
             NamePartShapeMarkder = GetShapeNameandCurrentType(false, command);
 
-            ShapePreviewer = Template.FindName(NamePartShapePreviewer, this) as ShapeBase;
-            ShapeMarker = Template.FindName(NamePartShapeMarkder, this) as ShapeBase;
-
-
+            if (!NamePartShapePreviewer.Contains("EXIT"))
+            {
+                ShapePreviewer = Template.FindName(NamePartShapePreviewer, this) as ShapeBase;
+                ShapeMarker = Template.FindName(NamePartShapeMarkder, this) as ShapeBase;
+            }
+   
         }));
 
         //图像处理
@@ -807,30 +940,6 @@ public class ImageEx : ContentControl
                 }
             }
         }));
-    }
-
-    private string GetShapeNameandCurrentType(bool isPreviewer, string command)
-    {
-        string name = string.Empty;
-
-        switch (command)
-        {
-            case "PointMarker":
-                name = isPreviewer ? "PART_SHAPE_POINT_PREVIEWER" : "PART_SHAPE_POINT_MARKER";
-                break;
-            case "LineMarker":
-                name = isPreviewer ? "PART_SHAPE_LINE_PREVIEWER" : "PART_SHAPE_LINE_MARKER";
-                break;
-            case "RectMarker":
-                name = isPreviewer ? "PART_SHAPE_RECT_PREVIEWER" : "PART_SHAPE_RECT_MARKER";
-                break;
-            case "PolygonMarker":
-                name = isPreviewer ? "PART_SHAPE_POLYGON_PREVIEWER" : "PART_SHAPE_POLYGON_MARKER";
-                break;
-            default:
-                throw new NotImplementedException("Not Valid Command!");
-        }
-        return name;
     }
 
     /// <summary>
@@ -889,18 +998,48 @@ public class ImageEx : ContentControl
         TileImage();
     }
 
+    /// <summary>
+    /// 获取当前标记模式
+    /// </summary>
+    /// <param name="isPreviewer"></param>
+    /// <param name="command"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    private string GetShapeNameandCurrentType(bool isPreviewer, string command)
+    {
+        string name = string.Empty;
+
+        switch (command)
+        {
+            case "PointMarker":
+                name = isPreviewer ? "PART_SHAPE_POINT_PREVIEWER" : "PART_SHAPE_POINT_MARKER";
+                break;
+            case "LineMarker":
+                name = isPreviewer ? "PART_SHAPE_LINE_PREVIEWER" : "PART_SHAPE_LINE_MARKER";
+                break;
+            case "RectMarker":
+                name = isPreviewer ? "PART_SHAPE_RECT_PREVIEWER" : "PART_SHAPE_RECT_MARKER";
+                break;
+            case "PolygonMarker":
+                name = isPreviewer ? "PART_SHAPE_POLYGON_PREVIEWER" : "PART_SHAPE_POLYGON_MARKER";
+                break;
+            default:
+                throw new NotImplementedException("Not Valid Command!");
+        }
+        return name;
+    }
+
     #region 依赖属性
 
     // 定义图像源（ImageSource）、形状集合（ShapeCollection）、标记菜单（MarkerMenu）和图像面板缩放（ImagePanelScale）
 
+    #region ImageSource
     /// <summary>
     /// 设置和获取控件的图像源，并在图像源变化时更新图像信息和平铺图像
     /// </summary>
     public static readonly DependencyProperty ImageSourceProperty = DependencyProperty.Register(
         nameof(ImageSource), typeof(ImageSource), typeof(ImageEx), new PropertyMetadata(null, (o, p) =>
         {
-            Debug.WriteLine($"ImageSource changed__{DateTime.Now.ToString("HH-mm-ss-fff")}");
-
             if (o is not ImageEx ex) return;
             ex.UpdateImageInfo();
 
@@ -923,6 +1062,9 @@ public class ImageEx : ContentControl
         set => SetValue(ImageSourceProperty, value);
     }
 
+    #endregion
+
+    #region ShapeCollection 未使用
     /// <summary>
     /// 设置和获取形状集合，并在形状集合变化时更新画布上的形状
     /// </summary>
@@ -950,6 +1092,9 @@ public class ImageEx : ContentControl
     public static readonly DependencyProperty ShapeCollectionProperty = DependencyProperty.Register(
     nameof(ShapeCollection), typeof(ObservableCollection<ShapeBase>), typeof(ImageEx), new PropertyMetadata(new ObservableCollection<ShapeBase>(), OnShapeChanged));
 
+    #endregion
+
+    #region MarkerMenu
     public static readonly DependencyProperty MarkerMenuProperty = DependencyProperty.Register(
         nameof(MarkerMenu), typeof(ContextMenu), typeof(ImageEx), new PropertyMetadata(default(ContextMenu)));
 
@@ -962,33 +1107,57 @@ public class ImageEx : ContentControl
         set => SetValue(MarkerMenuProperty, value);
     }
 
-    /// <summary>
-    /// 平铺图案
-    /// </summary>
-    private void TileImage()
+    #endregion
+
+    #region Grid
+    public static readonly DependencyProperty GridColProperty = DependencyProperty.RegisterAttached(
+        nameof(GridCol), typeof(int), typeof(ImageEx), new PropertyMetadata(0));
+
+    public int GridCol
     {
-        ImagePanelScale = DefaultImagePanelScale;
-
-        if (Scroll is null) return;
-
-        Scroll.ScrollToVerticalOffset(0);
-        Scroll.ScrollToHorizontalOffset(0);
+        get => (int)GetValue(GridColProperty);
+        set => SetValue(GridColProperty, value);
     }
 
-    /// <summary>
-    /// 更新图像信息
-    /// </summary>
-    private void UpdateImageInfo()
+    public static readonly DependencyProperty GridRowProperty = DependencyProperty.RegisterAttached(
+        nameof(GridRow), typeof(int), typeof(ImageEx), new PropertyMetadata(0));
+
+    public int GridRow
     {
-        if (ImageSource is null) return;
-
-        DefaultImagePanelScale = Math.Min(ActualWidth / ImageSource.Width,
-            ActualHeight / ImageSource.Height);
-
-        DefaultImageSize = (ImageSource.Width, ImageSource.Height);
+        get => (int)GetValue(GridRowProperty);
+        set => SetValue(GridRowProperty, value);
     }
 
-    #region Render Size Info
+    public static readonly DependencyProperty GridColorProperty = DependencyProperty.RegisterAttached(
+        nameof(GridColor), typeof(Brush), typeof(ImageEx), new PropertyMetadata(Brushes.Red));
+
+    public Brush GridColor
+    {
+        get => (Brush)GetValue(GridColorProperty);
+        set => SetValue(GridColorProperty, value);
+    }
+
+    public static readonly DependencyProperty GridThicknessProperty = DependencyProperty.RegisterAttached(
+        nameof(GridThickness), typeof(int), typeof(ImageEx), new PropertyMetadata(3));
+
+    public int GridThickness
+    {
+        get => (int)GetValue(GridThicknessProperty);
+        set => SetValue(GridThicknessProperty, value);
+    }
+
+    public static readonly DependencyProperty GridFillColorProperty = DependencyProperty.RegisterAttached(
+        nameof(GridFillColor), typeof(Brush), typeof(ImageEx), new PropertyMetadata(Brushes.Yellow));
+
+    public Brush GridFillColor
+    {
+        get => (Brush)GetValue(GridFillColorProperty);
+        set => SetValue(GridFillColorProperty, value);
+    }
+
+    #endregion
+
+    #region ImagePanelScale
 
     internal double DefaultImagePanelScale = 0;
 
@@ -1021,6 +1190,32 @@ public class ImageEx : ContentControl
     }
 
     #endregion
+
+    /// <summary>
+    /// 平铺图案
+    /// </summary>
+    private void TileImage()
+    {
+        ImagePanelScale = DefaultImagePanelScale;
+
+        if (Scroll is null) return;
+
+        Scroll.ScrollToVerticalOffset(0);
+        Scroll.ScrollToHorizontalOffset(0);
+    }
+
+    /// <summary>
+    /// 更新图像信息
+    /// </summary>
+    private void UpdateImageInfo()
+    {
+        if (ImageSource is null) return;
+
+        DefaultImagePanelScale = Math.Min(ActualWidth / ImageSource.Width,
+            ActualHeight / ImageSource.Height);
+
+        DefaultImageSize = (ImageSource.Width, ImageSource.Height);
+    }
 
     #endregion
 
