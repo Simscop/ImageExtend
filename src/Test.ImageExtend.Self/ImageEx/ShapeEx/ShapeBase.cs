@@ -1,8 +1,6 @@
-﻿using System.Diagnostics;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
-//using Lift.UI.Tools.Extension;
 using Test.ImageExtend.Extension;
 using InkCanvas = System.Windows.Controls.InkCanvas;
 
@@ -122,7 +120,7 @@ public abstract class ShapeBase : Shape
         Height = Math.Abs(start.Y - end.Y);
         var position = new Point(Math.Min(start.X, end.X), Math.Min(start.Y, end.Y));
         InkCanvas.SetLeft(this, position.X);
-        InkCanvas.SetTop(this, position.Y);
+        InkCanvas.SetTop(this, position.Y);    
     }
 
     /// <summary>
@@ -164,23 +162,28 @@ public class RectangleShape : ShapeBase
 
     public override void Draw(InkCanvas canvas)
     {
-        throw new NotImplementedException();
+        if (this.Parent != null)
+        {
+            var currentParent = this.Parent as InkCanvas;
+            currentParent?.Children.Remove(this);
+        }
+        canvas.Children.Add(this);
+        Refresh();
     }
 
     internal override RectangleShape Clone()
     {
-        throw new NotImplementedException();
+        var clone = new RectangleShape();
+        typeof(RectangleShape).GetProperties()
+            ?.Where(prop => prop.CanWrite)
+            ?.Where(prop => new List<string>()
+            {
+                "Width","Height","PointStart","PointEnd","Fill",
+                "Stroke","StrokeThickness","Opacity","Name",
+            }.Contains(prop.Name))
+            ?.Do(prop => prop.SetValue(clone, prop.GetValue(this)));
 
-        //var clone = new RectangleShape();
-        //typeof(RectangleShape).GetProperties()
-        //    ?.Where(prop => prop.CanWrite)
-        //    ?.Where(prop => new List<string>()
-        //    {
-        //        "Width","Height","PointStart","PointEnd","Fill","Strokex"
-        //    }.Contains(prop.Name))
-        //    ?.Do(prop => prop.SetValue(clone, prop.GetValue(this)));
-
-        //return clone;
+        return clone;
     }
 }
 
@@ -207,12 +210,28 @@ public class LineShape : ShapeBase
 
     public override void Draw(InkCanvas canvas)
     {
-        throw new NotImplementedException();
+        if (this.Parent != null)
+        {
+            var currentParent = this.Parent as InkCanvas;
+            currentParent?.Children.Remove(this);
+        }
+        canvas.Children.Add(this);
+        Refresh();
     }
 
     internal override ShapeBase Clone()
     {
-        throw new NotImplementedException();
+        var clone = new LineShape();
+        typeof(LineShape).GetProperties()
+            ?.Where(prop => prop.CanWrite)
+            ?.Where(prop => new List<string>()
+            {
+                "Width","Height","PointStart","PointEnd",
+                "Stroke","StrokeThickness","Name","Opacity"
+            }.Contains(prop.Name))
+            ?.Do(prop => prop.SetValue(clone, prop.GetValue(this)));
+
+        return clone;
     }
 }
 
@@ -230,27 +249,46 @@ public class PointShape : ShapeBase
     public override void Refresh()
     {
         double radius = 5;
-        ellipseGeometry.Center = PointStart;
+        ellipseGeometry.Center = new();
         ellipseGeometry.RadiusX = radius;
         ellipseGeometry.RadiusY = radius;
-        InkCanvas.SetLeft(this, PointEnd.X - radius );
-        InkCanvas.SetTop(this, PointEnd.Y - radius );
+        InkCanvas.SetLeft(this, PointEnd.X - radius);
+        InkCanvas.SetTop(this, PointEnd.Y - radius);
     }
 
     public override void Draw(InkCanvas canvas)
     {
-        throw new NotImplementedException();
+        if (this.Parent != null)
+        {
+            var currentParent = this.Parent as InkCanvas;
+
+            currentParent?.Children.Remove(this);
+        }
+        canvas.Children.Add(this);
+        Refresh();
     }
+
 
     internal override ShapeBase Clone()
     {
-        throw new NotImplementedException();
+        var clone = new PointShape();
+
+        typeof(PointShape).GetProperties()
+            ?.Where(prop => prop.CanWrite)
+            ?.Where(prop => new List<string>()
+            {
+                "Width","Height","PointStart","PointEnd",
+                "Stroke","StrokeThickness","Name","Fill",
+            }.Contains(prop.Name))
+            ?.Do(prop => prop.SetValue(clone, prop.GetValue(this)));
+
+        return clone;
     }
 }
 
 public class PolygonShape : ShapeBase
 {
-    public List<Point> Points { get; set; } = new List<Point>();
+    public List<Point>? Points { get; set; } = new();
 
     protected override Geometry DefiningGeometry
     {
@@ -259,7 +297,7 @@ public class PolygonShape : ShapeBase
             var geometry = new StreamGeometry();
             using (var context = geometry.Open())
             {
-                if (Points.Count > 0)
+                if (Points?.Count > 0)
                 {
                     context.BeginFigure(Points.First(), true, true);
                     context.PolyLineTo(Points.Skip(1).ToList(), true, true);
@@ -270,21 +308,38 @@ public class PolygonShape : ShapeBase
         }
     }
 
-    public override void Refresh() => InvalidateVisual();
 
     public void RefreshPolygonPoints(List<Point> points)
     {
         Points = points;
-        Refresh();
+        if (Points.Count > 0) InvalidateVisual();
     }
 
     public override void Draw(InkCanvas canvas)
     {
-        throw new NotImplementedException();
+        if (this.Parent != null)
+        {
+            var currentParent = this.Parent as InkCanvas;
+            currentParent?.Children.Remove(this);
+        }
+        canvas.Children.Add(this);
+
+        if (this.Points != null)
+            RefreshPolygonPoints(Points);
     }
 
     internal override ShapeBase Clone()
     {
-        throw new NotImplementedException();
+        var clone = new PolygonShape();
+        typeof(PolygonShape).GetProperties()
+            ?.Where(prop => prop.CanWrite)
+            ?.Where(prop => new List<string>()
+            {
+                "Width","Height","PointStart","PointEnd","Stroke",
+                "StrokeThickness","Name","Fill","Points","Opacity"
+            }.Contains(prop.Name))
+            ?.Do(prop => prop.SetValue(clone, prop.GetValue(this)));
+
+        return clone;
     }
 }
