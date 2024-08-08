@@ -54,21 +54,26 @@
                                                 RenderOptions.BitmapScalingMode="NearestNeighbor"
                                                 RenderTransformOrigin="0.5,0.5"
                                                 Source="{TemplateBinding ImageSource}">
+
+                                                <!--  todo 限制ContextMenu是否显示  -->
                                                 <Image.ContextMenu>
-                                                    <!--  todo 限制是否显示  -->
                                                     <ContextMenu Visibility="Visible">
                                                         <MenuItem
                                                             Command="{x:Static imageEx:ImageEx.ImageProcessCommand}"
                                                             CommandParameter="ImageProcess"
                                                             Header="ImageProcess" />
-                                                        <MenuItem
+                                                        <!--<MenuItem
                                                             Command="{x:Static imageEx:ImageEx.ImageProcessCommand}"
                                                             CommandParameter="ResetImageProcess"
-                                                            Header="Reset ImageProcess" />
+                                                            Header="Reset ImageProcess" />-->
                                                         <MenuItem
                                                             Command="{x:Static imageEx:ImageEx.ImageProcessCommand}"
                                                             CommandParameter="SaveDisplay"
                                                             Header="SaveDisplay" />
+                                                        <MenuItem
+                                                            Command="{x:Static imageEx:ImageEx.ImageProcessCommand}"
+                                                            CommandParameter="SaveDump"
+                                                            Header="SaveDump" />
                                                         <Separator />
                                                         <MenuItem
                                                             Command="{x:Static imageEx:ImageEx.MarkeronImageCommand}"
@@ -88,6 +93,7 @@
                                                             Header="PolygonMarker" />
                                                     </ContextMenu>
                                                 </Image.ContextMenu>
+
                                             </Image>
                                         </Grid>
 
@@ -125,7 +131,7 @@
                                             Fill="Red"
                                             Opacity="0.5"
                                             Stroke="Blue"
-                                            StrokeThickness="1" />
+                                            StrokeThickness="3" />
 
                                         <shapeEx:PolygonShape
                                             x:Name="PART_SHAPE_POLYGON_MARKER"

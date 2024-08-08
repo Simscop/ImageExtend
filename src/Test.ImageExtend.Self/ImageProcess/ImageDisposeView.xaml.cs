@@ -1,24 +1,17 @@
 ﻿using System.Windows;
-using System.Windows.Media;
+using Test.ImageExtend.ViewModels;
 
 namespace Test.ImageExtend.Self
 {
-    public partial class ImageAdjust : Window
+    /// <summary>
+    /// ImageDisposeView.xaml 的交互逻辑
+    /// </summary>
+    public partial class ImageDisposeView : Window
     {
-        public double Brigheness { get; set; } = -1;
-        public double Contrast { get; set; } = -1;
-        public double Gamma { get; set; } = -1;
-
-        public event EventHandler<double>? BrightnessUpdated;
-        public event EventHandler<double>? ContrastUpdated;
-        public event EventHandler<double>? GammaUpdated;
-
-        public ImageAdjust(double _brigheness, double _contrast,double  _gamma)
+        public ImageDisposeView()
         {
-            Brigheness= _brigheness;
-            Contrast= _contrast;
-            Gamma= _gamma;
             InitializeComponent();
+            this.DataContext = GlobalValue.ViewModel;
         }
 
         private void Close_Click(object sender, RoutedEventArgs e)
@@ -27,28 +20,8 @@ namespace Test.ImageExtend.Self
         }
 
         private void Reset_Click(object sender, RoutedEventArgs e)
-        {       
-            BrightnessSlider.Value = 1;
-            GammaSlider.Value = 1;
-            ContrastSlider.Value = 0;
-        }
-
-        private void BrightnessSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            Brigheness = BrightnessSlider.Value;
-            BrightnessUpdated?.Invoke(this, Brigheness);
-        }
-
-        private void GammaSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            Gamma = GammaSlider.Value;
-            GammaUpdated?.Invoke(this, Gamma);
-        }
-
-        private void ContrastSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            Contrast = ContrastSlider.Value;
-            ContrastUpdated?.Invoke(this, Contrast);
+            GlobalValue.ViewModel.DisplayModel = new();
         }
 
         private void BrightnessUpButton_Click(object sender, RoutedEventArgs e)
@@ -98,5 +71,6 @@ namespace Test.ImageExtend.Self
                 ContrastSlider.Value -= ContrastSlider.TickFrequency;
             }
         }
+
     }
 }

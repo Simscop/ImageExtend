@@ -28,21 +28,19 @@
             <!--  标记上右键弹窗——accquire/scale/delete  -->
             <Border
                 Grid.Column="0"
-                Margin="5"
-                BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="1"
-                CornerRadius="5">
+                BorderBrush="Black"
+                BorderThickness="1">
 
                 <imageEx:ImageEx
                     x:Name="ImageExImage"
                     Margin="5"
                     HorizontalAlignment="Stretch"
-                    imageEx:ImageEx.GridCol="10"
-                    imageEx:ImageEx.GridRow="7"
+                    imageEx:ImageEx.GridCol="5"
                     imageEx:ImageEx.GridColor="Red"
-                    imageEx:ImageEx.GridThickness="1"
                     imageEx:ImageEx.GridFillColor="LightYellow"
-                    ImageSource="{Binding Frame}">
+                    imageEx:ImageEx.GridRow="10"
+                    imageEx:ImageEx.GridThickness="1"
+                    ImageSource="{Binding DisplayModel.Frame}">
 
                     <imageEx:ImageEx.MarkerMenu>
                         <ContextMenu>
@@ -58,6 +56,40 @@
                         </ContextMenu>
                     </imageEx:ImageEx.MarkerMenu>
 
+                    <!--<imageEx:ImageEx.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem
+                                Command="imageEx:ImageEx.MarkeronImageCommand"
+                                CommandParameter="{x:Static imageEx:ImageEx.PointMarker}"
+                                Header="PointMarker" />
+                            <MenuItem
+                                Command="imageEx:ImageEx.MarkeronImageCommand"
+                                CommandParameter="{x:Static imageEx:ImageEx.LineMarker}"
+                                Header="LineMarker" />
+                            <MenuItem
+                                Command="imageEx:ImageEx.MarkeronImageCommand"
+                                CommandParameter="{x:Static imageEx:ImageEx.RectMarker}"
+                                Header="RectMarker" />
+                            <MenuItem
+                                Command="imageEx:ImageEx.MarkeronImageCommand"
+                                CommandParameter="{x:Static imageEx:ImageEx.PolygonMarker}"
+                                Header="PolygonMarker" />
+                            <Separator />
+                            <MenuItem
+                                Command="{x:Static imageEx:ImageEx.ImageProcessCommand}"
+                                CommandParameter="ImageProcess"
+                                Header="ImageProcess" />
+                            <MenuItem
+                                Command="{x:Static imageEx:ImageEx.ImageProcessCommand}"
+                                CommandParameter="ResetImageProcess"
+                                Header="Reset ImageProcess" />
+                            <MenuItem
+                                Command="{x:Static imageEx:ImageEx.ImageProcessCommand}"
+                                CommandParameter="SaveDisplay"
+                                Header="SaveDisplay" />
+                        </ContextMenu>
+                    </imageEx:ImageEx.ContextMenu>-->
+
                 </imageEx:ImageEx>
 
             </Border>
@@ -65,7 +97,7 @@
             <Border
                 Grid.Column="1"
                 Margin="5"
-                BorderBrush="{DynamicResource BorderBrush}"
+                BorderBrush="Black"
                 BorderThickness="1"
                 CornerRadius="5">
 

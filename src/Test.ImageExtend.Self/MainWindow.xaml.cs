@@ -1,4 +1,5 @@
-﻿using Test.ImageExtend.ViewModels;
+﻿using Test.ImageExtend.Self;
+using Test.ImageExtend.ViewModels;
 
 namespace Test.ImageExtend
 {
@@ -7,12 +8,10 @@ namespace Test.ImageExtend
     /// </summary>
     public partial class MainWindow : System.Windows.Window
     {
-        public  MainViewModel MainViewModel = new();
-
         public MainWindow()
         {
             InitializeComponent();
-            DataContext = MainViewModel;
+            this.DataContext = GlobalValue.ViewModel;
         }
     }
 }

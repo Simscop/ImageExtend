@@ -714,26 +714,21 @@ public class ImageEx : ContentControl
     public const string ImageProcess = "ImageProcess";
 
     /// <summary>
-    /// 还原图像处理
-    /// </summary>
-    public const string ResetImageProcess = "ResetImageProcess";
-
-    /// <summary>
-    /// 还原图像处理
+    /// 保存显示原图
     /// </summary>
     public const string SaveDisplay = "SaveDisplay";
+
+    /// <summary>
+    /// 保存截图
+    /// </summary>
+    public const string SaveDump = "SaveDump";
 
     /// <summary>
     /// 图像处理命令
     /// </summary>
     public static readonly RoutedUICommand ImageProcessCommand = new();
 
-    private static ImageSource? _originalImageSource;
-    private static double _brightness = 1;
-    private static double _contrast = 0;
-    private static double _gamma = 1;
-
-    public static void SaveBitmapImage(BitmapImage bitmapImage, string filePath)
+    private void SaveBitmapImage(BitmapImage bitmapImage, string filePath)
     {
         BitmapEncoder encoder;
         string extension = System.IO.Path.GetExtension(filePath).ToLower();
@@ -781,9 +776,9 @@ public class ImageEx : ContentControl
         }
         renderTargetBitmap.Render(drawingVisual);
 
-        PngBitmapEncoder encoder = new PngBitmapEncoder();
+        var encoder = new TiffBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(renderTargetBitmap));
-        using (MemoryStream memoryStream = new MemoryStream())
+        using (MemoryStream memoryStream = new())
         {
             encoder.Save(memoryStream);
             memoryStream.Position = 0;
@@ -796,20 +791,43 @@ public class ImageEx : ContentControl
         return bitmapImage;
     }
 
-    private void ApplyImageProcess()
+    private BitmapImage InkCanvastoBitmapImage(InkCanvas inkCanvas)
     {
-        if (ImageSource == null || _originalImageSource == null) return;
-        var processedImage = ImageProcessModel.Gamma(_originalImageSource, _gamma);
-        processedImage = ImageProcessModel.Brightness(processedImage, _brightness);
-        processedImage = ImageProcessModel.Contrast(processedImage, _contrast);
+        BitmapImage bitmapImage = new BitmapImage();
+        int width = (int)inkCanvas.ActualWidth;
+        int height = (int)inkCanvas.ActualHeight;
 
-        if (processedImage != null)
-        {
-            processedImage.Freeze();
-            ImageSource = processedImage;
+        RenderTargetBitmap rtb = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+        DrawingVisual dv = new DrawingVisual();
+        using (DrawingContext dc = dv.RenderOpen())
+    {
+            VisualBrush vb = new VisualBrush(inkCanvas);
+            dc.DrawRectangle(vb, null, new Rect(new Point(), new Size(width, height)));
         }
-        //processedImage = null;
+        rtb.Render(dv);
+
+        var encoder = new TiffBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(rtb));
+        using (MemoryStream memoryStream = new())
+        {
+            encoder.Save(memoryStream);
+            memoryStream.Position = 0;
+
+            bitmapImage.BeginInit();
+            bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+            bitmapImage.StreamSource = memoryStream;
+            bitmapImage.EndInit();
+        }
+        return bitmapImage;
     }
+
+    private void OpenFolderAndSelectFile(string fileFullName)
+    {
+        ProcessStartInfo psi = new ProcessStartInfo("Explorer.exe");
+        psi.Arguments = "/e,/select," + fileFullName;
+        Process.Start(psi);
+    }
+
     #endregion
 
     //定义标记变化和光标变化的事件
@@ -930,13 +948,33 @@ public class ImageEx : ContentControl
                 saveFileDialog.Filter = "TIFF files (*.tif)|*.tif|TIFF files (*.tiff)|*.tiff|All files (*.*)|*.*";
                 saveFileDialog.DefaultExt = "tif";
                 saveFileDialog.AddExtension = true;
-                saveFileDialog.FileName = "Display"; // 设置默认文件名称
+                saveFileDialog.FileName = "Display";
 
                 bool? result = saveFileDialog.ShowDialog();
                 if (result == true)
                 {
                     var bitmapImage = ImageSourcetoBitmapImage(ImageSource);
                     SaveBitmapImage(bitmapImage, saveFileDialog.FileName);
+                    OpenFolderAndSelectFile(saveFileDialog.FileName);
+                }
+            }
+            else if (command == SaveDump)
+            {
+                if (Canvas == null) return;
+
+                SaveFileDialog saveFileDialog = new SaveFileDialog();
+                saveFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                saveFileDialog.Filter = "TIFF files (*.tif)|*.tif|TIFF files (*.tiff)|*.tiff|All files (*.*)|*.*";
+                saveFileDialog.DefaultExt = "tif";
+                saveFileDialog.AddExtension = true;
+                saveFileDialog.FileName = "DumpImage";
+
+                bool? result = saveFileDialog.ShowDialog();
+                if (result == true)
+                {
+                    var bitmapImage = InkCanvastoBitmapImage(Canvas);
+                    SaveBitmapImage(bitmapImage, saveFileDialog.FileName);
+                    OpenFolderAndSelectFile(saveFileDialog.FileName);
                 }
             }
         }));
