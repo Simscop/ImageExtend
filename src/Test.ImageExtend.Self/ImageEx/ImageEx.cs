@@ -963,10 +963,7 @@ public class ImageEx : ContentControl
             {
                 if (ImageSource != null)
                 {
-                    var dialog = new ImageAdjust(_brightness, _contrast, _gamma);
-                    dialog.GammaUpdated += (sender, args) => { _gamma = args; ApplyImageProcess(); };
-                    dialog.ContrastUpdated += (sender, args) => { _contrast = args; ApplyImageProcess(); };
-                    dialog.BrightnessUpdated += (sender, args) => { _brightness = args; ApplyImageProcess(); };
+                    var dialog = new ImageDisposeView();
                     dialog.ShowDialog();
                 }
             }

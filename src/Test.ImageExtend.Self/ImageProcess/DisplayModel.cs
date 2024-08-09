@@ -24,7 +24,7 @@ namespace Test.ImageExtend.Self
         private double _contrast = 1;
 
         [ObservableProperty]
-        private double _brightness = 1.5;
+        private double _brightness = 0;
 
         [ObservableProperty]
         private double _gamma = 1;
