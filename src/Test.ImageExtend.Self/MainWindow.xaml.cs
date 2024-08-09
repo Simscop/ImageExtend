@@ -1,5 +1,4 @@
-﻿using Test.ImageExtend.Self;
-using Test.ImageExtend.ViewModels;
+﻿using System.Windows;
 
 namespace Test.ImageExtend
 {

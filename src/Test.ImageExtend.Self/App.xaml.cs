@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using Test.ImageExtend.ViewModels;
 
 namespace Test.ImageExtend
 {
@@ -8,6 +9,11 @@ namespace Test.ImageExtend
     public partial class App : Application
     {
 
+    }
+
+    public static class GlobalValue
+    {
+        public static MainViewModel ViewModel = new MainViewModel();
     }
 
 }

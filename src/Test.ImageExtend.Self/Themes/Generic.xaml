@@ -91,6 +91,11 @@
                                                             Command="{x:Static imageEx:ImageEx.MarkeronImageCommand}"
                                                             CommandParameter="PolygonMarker"
                                                             Header="PolygonMarker" />
+                                                        <Separator />
+                                                        <MenuItem
+                                                            Command="{x:Static imageEx:ImageEx.GetClickMsgCommand}"
+                                                            CommandParameter="GetClickMsg"
+                                                            Header="GetClickMsg" />
                                                     </ContextMenu>
                                                 </Image.ContextMenu>
 

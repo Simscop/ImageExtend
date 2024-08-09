@@ -10,7 +10,6 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 using Test.ImageExtend.Extension;
 using Test.ImageExtend.ImageEx.ShapeEx;
 using Test.ImageExtend.Self;
@@ -187,13 +186,22 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
     /// <param name="e"></param>
     private void OnCanvasPreviewMouseUp(object sender, MouseButtonEventArgs e)
     {
-        if (AssociatedObject.ShapePreviewer == null|| AssociatedObject.ShapeMarker == null) return;
+        if (AssociatedObject.ShapePreviewer == null || AssociatedObject.ShapeMarker == null) return;
             
-        if (AssociatedObject.NamePartShapeMarkder.Contains("RECT"))
+        if (AssociatedObject.ShapeMarker is RectangleShape)
         {
-            //获取点击位置对应的网格行列
-            var pos = CalculateGridPosition(e.GetPosition(AssociatedObject.Canvas), AssociatedObject.ShapePreviewer!.PointStart, _gridSpacingX, _gridSpacingY);
-            Debug.WriteLine($"pos_{pos}");
+            if (AssociatedObject._flagGetClickMsg && AssociatedObject.isMsgExist)
+            {
+                if (e.LeftButton != MouseButtonState.Pressed || e.RightButton == MouseButtonState.Pressed)
+                {
+                    var click = e.GetPosition(AssociatedObject.Canvas);
+                    var pos = CalculateGridPosition(click);
+                    AssociatedObject.GridPosition = pos;
+                    Debug.WriteLine($"rect pos_{pos} x_{click.X} y_{click.Y}");
+
+                    return;
+                }
+            }
 
             if (!_flagRect) return;
             _flagRect = false;
@@ -261,12 +269,16 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("POLYGON"))
         {
-            //获取点击位置对应的网格行列
+            if (AssociatedObject._flagGetClickMsg && AssociatedObject.isMsgExist)
+            {
             if (e.LeftButton != MouseButtonState.Pressed || e.RightButton == MouseButtonState.Pressed)
             {
-                //需判断是否在画线内部，todo
-                var pos = CalculateGridPosition(e.GetPosition(AssociatedObject.Canvas), _constractPoint, _gridSpacingX, _gridSpacingY);
-                Debug.WriteLine($"pos_{pos}");
+                    var click = e.GetPosition(AssociatedObject.Canvas);
+                    var pos = CalculateGridPosition(click);
+                    AssociatedObject.GridPosition = pos;
+                    Debug.WriteLine($"poly_pos_{pos} x_{click.X} y_{click.Y}");
+                    return;
+            }
             }
 
             _clickCount++;
@@ -298,7 +310,11 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
                         double height = maxY - minY;
                         AssociatedObject.ShapeMarker!.Fill = GridFillBrush(width, height, _fillEndPoint);
 
-                        _constractPoint = new Point(minX, minY);
+                        _gridSpacingX = width / vercount;
+                        _gridSpacingY = height / horcount;
+                        _constrastPoint = new Point(minX, minY);
+                        _sortsPoints = sortsPoints;
+                        AssociatedObject.isMsgExist = true;
                     }
         
                     _flagPolygonReset = true;
@@ -325,7 +341,8 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
 
         if (AssociatedObject.NamePartShapeMarkder.Contains("RECT"))
         {
-            if (e.LeftButton == MouseButtonState.Pressed|| e.RightButton != MouseButtonState.Pressed) return;
+            if (AssociatedObject._flagGetClickMsg && AssociatedObject.isMsgExist) return;
+            if (e.LeftButton == MouseButtonState.Pressed || e.RightButton != MouseButtonState.Pressed) return;
 
             _flagRect = true;
 
@@ -361,7 +378,8 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("POLYGON"))
         {
-            if (_flagPolygonReset) return;
+            if (AssociatedObject._flagGetClickMsg && AssociatedObject.isMsgExist) return;
+            if (_flagPlgReset) return;
 
             var polygonShape = AssociatedObject.ShapePreviewer as PolygonShape;
             if (polygonShape?.Points.Count == 0) return;
@@ -392,7 +410,8 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
 
         if (AssociatedObject.NamePartShapeMarkder.Contains("RECT"))
         {
-            if (e.LeftButton == MouseButtonState.Pressed|| e.RightButton != MouseButtonState.Pressed) return;
+            if (AssociatedObject._flagGetClickMsg && AssociatedObject.isMsgExist) return;
+            if (e.LeftButton == MouseButtonState.Pressed || e.RightButton != MouseButtonState.Pressed) return;
             AssociatedObject.ShapePreviewer!.PointStart = e.GetPosition(AssociatedObject.Canvas);
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("LINE"))
@@ -412,6 +431,7 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         }
         else if (AssociatedObject.NamePartShapeMarkder.Contains("POLYGON"))
         {
+            if (AssociatedObject._flagGetClickMsg && AssociatedObject.isMsgExist) return;
             if (e.LeftButton != MouseButtonState.Pressed || e.RightButton == MouseButtonState.Pressed) return;
 
             if (_flagPolygonReset)
@@ -602,14 +622,23 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
     /// <param name="clickPosition"></param>
     /// <param name="gridSpacingX"></param>
     /// <param name="gridSpacingY"></param>
-    /// <param name="constractPoint"></param>
+    /// <param name="constrastPoint"></param>
     /// <returns></returns>
     private (int x, int y) CalculateGridPosition(Point clickPosition, Point constractPoint, double gridSpacingX, double gridSpacingY)
     {
-        if (gridSpacingX == 0 || gridSpacingY == 0) return (-1, -1);
-        int row = (int)Math.Floor((clickPosition.Y - constractPoint.Y) / gridSpacingY) + 1;
-        int column = (int)Math.Floor((clickPosition.X - constractPoint.X) / gridSpacingX) + 1;
-        if ((row > _horGridCount || row <= 0) || (column > _verGridCount || column <= 0)) return (-1, -1);
+        int horCount = AssociatedObject.GridRow;
+        int verCount = AssociatedObject.GridCol;
+
+        if (_gridSpacingX == 0 || _gridSpacingY == 0) return (-1, -1);
+        int row = (int)Math.Floor((clickPosition.Y - _constrastPoint.Y) / _gridSpacingY) + 1;
+        int column = (int)Math.Floor((clickPosition.X - _constrastPoint.X) / _gridSpacingX) + 1;
+
+        bool isPointInPolygon = IsPointInPolygon(_sortsPoints, clickPosition);
+        if (AssociatedObject.ShapeMarker is RectangleShape) isPointInPolygon = true;
+
+        if ((row > horCount || row <= 0) || (column > verCount || column <= 0) || !isPointInPolygon)
+            return (-1, -1);
+
         return (column, row);
     }
 
@@ -830,14 +859,20 @@ public class ImageEx : ContentControl
 
     #endregion
 
-    //定义标记变化和光标变化的事件
-    #region Events
+    #region GetClickMsgCommand
 
-    /// <summary>
-    /// 返回相对Image的坐标
-    /// </summary>
-    public Action<Rect>? OnRectMarkderChanged;
-    public Action<Line>? OnLineMarkderChanged;//未订阅
+    public static readonly RoutedUICommand GetClickMsgCommand = new();
+
+    public bool _flagGetClickMsg = false;
+
+    public bool isMsgExist = false;
+
+    #endregion
+
+    #region Events-定义标记变化和光标变化的事件
+
+    public Action<Rect>? OnRectMarkderChanged;//todo，保存信息、处理对应数据
+
     public Action<(int X, int Y, Color C)>? OnCursorChanged;
     public Func<int, int, Color>? GetImageColorFromPosition;
 
@@ -978,6 +1013,17 @@ public class ImageEx : ContentControl
                 }
             }
         }));
+
+        //获取点击信息
+        CommandBindings.Add(new CommandBinding(GetClickMsgCommand, (obj, args) =>
+        {
+            _flagGetClickMsg=true;
+        }));
+
+        //OnRectMarkderChanged += rect =>
+        //{
+        //    //todo，处理矩形数据：保存、计算点击信息、填充表格等
+        //};
     }
 
     /// <summary>

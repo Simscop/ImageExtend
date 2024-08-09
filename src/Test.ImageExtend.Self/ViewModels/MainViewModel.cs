@@ -16,6 +16,26 @@ namespace Test.ImageExtend.ViewModels
         }
 
         [ObservableProperty]
+        (int, int) _fillEndPoint = new();
+
+        [ObservableProperty]
+        (int, int) _gridPosition = new();
+
+        partial void OnGridPositionChanged((int, int) value)
+        {
+            Debug.WriteLine($"OnGridPositionChanged_({value.Item1},{value.Item2})");
+        }
+
+        [RelayCommand]
+        void ChangeShow()
+        {
+            int col = (int)Convert.ToInt64(DateTime.Now.ToString("ss")) % 4;
+            var row = col + 1;
+            Debug.WriteLine($"col_{col} row_{row}");
+            FillEndPoint = (col, row);
+        }
+
+        [ObservableProperty]
         DisplayModel _displayModel = new();
 
         public MainViewModel()
@@ -45,16 +65,15 @@ namespace Test.ImageExtend.ViewModels
                 {
                     while (true)
                     {
-                        Thread.Sleep(1000);
-
                         if (Application.Current == null) return;
 
-                        Application.Current.Dispatcher.Invoke(() =>
+                        Application.Current?.Dispatcher?.Invoke(() =>
                         {
                             DisplayModel.Original = _imgs[(count++) % total];
-                            //FrameContinuous = BitmapFrame.Create(_imgs[(count++) % total]?.ToBitmapSource());
-
                         });
+
+                        Thread.Sleep(100);
+
                         GC.Collect();
                     }
                 });
