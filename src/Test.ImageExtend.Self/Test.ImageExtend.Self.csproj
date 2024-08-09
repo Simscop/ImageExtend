@@ -9,11 +9,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Image\1.bmp" />
+    <None Remove="Image\1_32bit.bmp" />
+    <None Remove="Image\2_24bit.jpg" />
+    <None Remove="Image\3_16bit.tif" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Image\1.bmp">
+    <Content Include="Image\1_32bit.bmp">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Image\2_24bit.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Image\3_16bit.tif">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
@@ -21,10 +29,8 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.77" />
-    <PackageReference Include="OpenCvSharp4.Windows" Version="4.10.0.20240616" />
-    <PackageReference Include="OpenCvSharp4.WpfExtensions" Version="4.10.0.20240616" />
-    <PackageReference Include="OxyPlot.SkiaSharp.Wpf" Version="2.1.2" />
-    <PackageReference Include="System.Drawing.Common" Version="8.0.6" />
+    <PackageReference Include="OpenCvSharp4.Windows" Version="4.9.0.20240103" />
+    <PackageReference Include="OpenCvSharp4.WpfExtensions" Version="4.9.0.20240103" />
   </ItemGroup>
 
 </Project>

@@ -1,6 +1,5 @@
-﻿using System.Configuration;
-using System.Data;
-using System.Windows;
+﻿using System.Windows;
+using Test.ImageExtend.ViewModels;
 
 namespace Test.ImageExtend
 {
@@ -9,6 +8,12 @@ namespace Test.ImageExtend
     /// </summary>
     public partial class App : Application
     {
+
+    }
+
+    public static class GlobalValue
+    {
+        public static MainViewModel ViewModel = new MainViewModel();
     }
 
 }

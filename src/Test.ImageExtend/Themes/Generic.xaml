@@ -3,8 +3,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:imageEx="clr-namespace:Test.ImageExtend.ImageEx"
     xmlns:shapeEx="clr-namespace:Test.ImageExtend.ImageEx.ShapeEx">
-    
-    <!--矩形遮罩标记的定义-->
+
+    <!--  矩形遮罩标记的定义  -->
     <Style TargetType="imageEx:ImageEx">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Template">

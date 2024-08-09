@@ -3,26 +3,33 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:imageEx="clr-namespace:Test.ImageExtend.ImageEx"
     xmlns:shapeEx="clr-namespace:Test.ImageExtend.ImageEx.ShapeEx">
-    
-    <!--矩形遮罩标记的定义-->
+
+    <!--  矩形遮罩标记的定义  -->
     <Style TargetType="imageEx:ImageEx">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="imageEx:ImageEx">
+                    <!--  滚动条  -->
                     <ScrollViewer
                         x:Name="PART_SCROLL"
                         HorizontalScrollBarVisibility="Hidden"
                         IsEnabled="True"
                         VerticalScrollBarVisibility="Hidden">
+
+                        <!--  主面板  -->
                         <imageEx:SimplePanel x:Name="PART_MAIN_PANEL" Background="{TemplateBinding Background}">
+                            <!--  Viewbox用于调整子元素的大小，控件居中对齐保持比例  -->
                             <Viewbox
                                 x:Name="PART_BOX"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
                                 Stretch="Uniform">
+
+                                <!--  SimplePanel包含InkCanvas  -->
                                 <imageEx:SimplePanel ClipToBounds="True">
 
+                                    <!--  InkCanvas用于绘制和处理墨迹输入  -->
                                     <InkCanvas
                                         x:Name="PART_CANVAS"
                                         MinWidth="0"
@@ -32,38 +39,118 @@
                                         Background="{TemplateBinding Background}"
                                         EditingMode="None"
                                         ForceCursor="True">
+
                                         <InkCanvas.DefaultDrawingAttributes>
                                             <DrawingAttributes Color="Transparent" />
                                         </InkCanvas.DefaultDrawingAttributes>
+
                                         <InkCanvas.RenderTransform>
                                             <RotateTransform Angle="0" />
                                         </InkCanvas.RenderTransform>
+
                                         <Grid>
                                             <Image
                                                 Name="PART_ImageMain"
                                                 RenderOptions.BitmapScalingMode="NearestNeighbor"
                                                 RenderTransformOrigin="0.5,0.5"
-                                                Source="{TemplateBinding ImageSource}" />
+                                                Source="{TemplateBinding ImageSource}">
+
+                                                <!--  todo 限制ContextMenu是否显示  -->
+                                                <Image.ContextMenu>
+                                                    <ContextMenu Visibility="Visible">
+                                                        <MenuItem
+                                                            Command="{x:Static imageEx:ImageEx.ImageProcessCommand}"
+                                                            CommandParameter="ImageProcess"
+                                                            Header="ImageProcess" />
+                                                        <!--<MenuItem
+                                                            Command="{x:Static imageEx:ImageEx.ImageProcessCommand}"
+                                                            CommandParameter="ResetImageProcess"
+                                                            Header="Reset ImageProcess" />-->
+                                                        <MenuItem
+                                                            Command="{x:Static imageEx:ImageEx.ImageProcessCommand}"
+                                                            CommandParameter="SaveDisplay"
+                                                            Header="SaveDisplay" />
+                                                        <MenuItem
+                                                            Command="{x:Static imageEx:ImageEx.ImageProcessCommand}"
+                                                            CommandParameter="SaveDump"
+                                                            Header="SaveDump" />
+                                                        <Separator />
+                                                        <MenuItem
+                                                            Command="{x:Static imageEx:ImageEx.MarkeronImageCommand}"
+                                                            CommandParameter="PointMarker"
+                                                            Header="PointMarker" />
+                                                        <MenuItem
+                                                            Command="{x:Static imageEx:ImageEx.MarkeronImageCommand}"
+                                                            CommandParameter="LineMarker"
+                                                            Header="LineMarker" />
+                                                        <MenuItem
+                                                            Command="{x:Static imageEx:ImageEx.MarkeronImageCommand}"
+                                                            CommandParameter="RectMarker"
+                                                            Header="RectMarker" />
+                                                        <MenuItem
+                                                            Command="{x:Static imageEx:ImageEx.MarkeronImageCommand}"
+                                                            CommandParameter="PolygonMarker"
+                                                            Header="PolygonMarker" />
+                                                        <Separator />
+                                                        <MenuItem
+                                                            Command="{x:Static imageEx:ImageEx.GetClickMsgCommand}"
+                                                            CommandParameter="GetClickMsg"
+                                                            Header="GetClickMsg" />
+                                                    </ContextMenu>
+                                                </Image.ContextMenu>
+
+                                            </Image>
                                         </Grid>
+
                                         <shapeEx:RectangleShape
-                                            x:Name="PART_SHAPE_PREVIEWER"
+                                            x:Name="PART_SHAPE_RECT_PREVIEWER"
                                             Fill="Red"
                                             Opacity="0.5"
                                             Stroke="Blue"
-                                            Visibility="Collapsed" />
+                                            StrokeThickness="5" />
+
                                         <shapeEx:RectangleShape
-                                            x:Name="PART_SHAPE_MARKER"
+                                            x:Name="PART_SHAPE_RECT_MARKER"
                                             ContextMenu="{TemplateBinding MarkerMenu}"
                                             Fill="Black"
                                             Opacity="0.5"
                                             Stroke="Red"
                                             StrokeThickness="5" />
+
+                                        <shapeEx:LineShape
+                                            x:Name="PART_SHAPE_LINE_PREVIEWER"
+                                            Stroke="Yellow"
+                                            StrokeThickness="1" />
+
+                                        <shapeEx:LineShape
+                                            x:Name="PART_SHAPE_LINE_MARKER"
+                                            Stroke="Green"
+                                            StrokeThickness="5" />
+
+                                        <shapeEx:PointShape x:Name="PART_SHAPE_POINT_PREVIEWER" Fill="Yellow" />
+
+                                        <shapeEx:PointShape x:Name="PART_SHAPE_POINT_MARKER" Fill="Green" />
+
+                                        <shapeEx:PolygonShape
+                                            x:Name="PART_SHAPE_POLYGON_PREVIEWER"
+                                            Fill="Red"
+                                            Opacity="0.5"
+                                            Stroke="Blue"
+                                            StrokeThickness="3" />
+
+                                        <shapeEx:PolygonShape
+                                            x:Name="PART_SHAPE_POLYGON_MARKER"
+                                            ContextMenu="{TemplateBinding MarkerMenu}"
+                                            Opacity="0.5"
+                                            Stroke="Red"
+                                            StrokeThickness="3" />
+
                                     </InkCanvas>
                                 </imageEx:SimplePanel>
                             </Viewbox>
                         </imageEx:SimplePanel>
-                    </ScrollViewer>
 
+                    </ScrollViewer>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
