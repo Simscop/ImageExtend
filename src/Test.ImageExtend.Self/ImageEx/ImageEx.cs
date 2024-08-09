@@ -624,7 +624,7 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
     /// <param name="gridSpacingY"></param>
     /// <param name="constrastPoint"></param>
     /// <returns></returns>
-    private (int x, int y) CalculateGridPosition(Point clickPosition, Point constractPoint, double gridSpacingX, double gridSpacingY)
+    private (int x, int y) CalculateGridPosition(Point clickPosition)
     {
         int horCount = AssociatedObject.GridRow;
         int verCount = AssociatedObject.GridCol;
@@ -642,6 +642,37 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         return (column, row);
     }
 
+    /// <summary>
+    /// 判断是否在roi内——射线投射法
+    /// </summary>
+    /// <param name="polygonPoints"></param>
+    /// <param name="testPoint"></param>
+    /// <returns></returns>
+    private bool IsPointInPolygon(List<Point> polygonPoints, Point testPoint)
+    {
+        int numPoints = polygonPoints.Count;
+        bool isInside = false;
+
+        // 遍历多边形的所有边
+        for (int i = 0, j = numPoints - 1; i < numPoints; j = i++)
+        {
+            var pointI = polygonPoints[i];
+            var pointJ = polygonPoints[j];
+
+            // 判断测试点是否在多边形边的两端点的Y坐标之间
+            bool isYInRange = ((pointI.Y > testPoint.Y) != (pointJ.Y > testPoint.Y));
+
+            // 计算射线是否穿过多边形的边
+            bool isXOnRay = (testPoint.X < (pointJ.X - pointI.X) * (testPoint.Y - pointI.Y) / (pointJ.Y - pointI.Y) + pointI.X);
+
+            if (isYInRange && isXOnRay)
+            {
+                isInside = !isInside;
+}
+        }
+
+        return isInside;
+    }
 }
 
 #endregion
