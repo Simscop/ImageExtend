@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Linq.Expressions;
 using System.Windows.Data;
 
-namespace Test.ImageExtend.Extension
+namespace ImageExtend.Extension
 {
     public class CollectionViewExtension<TSource>
     {

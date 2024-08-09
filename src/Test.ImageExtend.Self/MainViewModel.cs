@@ -3,9 +3,8 @@ using CommunityToolkit.Mvvm.Input;
 using OpenCvSharp;
 using System.Diagnostics;
 using System.Windows;
-using Test.ImageExtend.Self;
 
-namespace Test.ImageExtend.ViewModels
+namespace ImageExtend.ViewModels
 {
     public partial class MainViewModel: ObservableObject
     {

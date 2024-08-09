@@ -1,9 +1,9 @@
 ﻿<!--<Application
-    x:Class="Test.ImageExtend.App"
+    x:Class="ImageExtend.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:liftui="https://github.com/pchuan98/Lift.UI"
-    xmlns:local="clr-namespace:Test.ImageExtend"
+    xmlns:local="clr-namespace:ImageExtend"
     StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
@@ -15,10 +15,10 @@
     </Application.Resources>
 </Application>-->
 <Application
-    x:Class="Test.ImageExtend.App"
+    x:Class="ImageExtend.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="clr-namespace:Test.ImageExtend"
+    xmlns:local="clr-namespace:ImageExtend"
     StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>

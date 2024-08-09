@@ -1,7 +1,6 @@
 ﻿using System.Windows;
-using Test.ImageExtend.ViewModels;
 
-namespace Test.ImageExtend.Self
+namespace ImageExtend
 {
     /// <summary>
     /// ImageDisposeView.xaml 的交互逻辑

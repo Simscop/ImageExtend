@@ -1,7 +1,7 @@
-﻿using System.Windows;
-using Test.ImageExtend.ViewModels;
+﻿using ImageExtend.ViewModels;
+using System.Windows;
 
-namespace Test.ImageExtend
+namespace ImageExtend
 {
     /// <summary>
     /// Interaction logic for App.xaml

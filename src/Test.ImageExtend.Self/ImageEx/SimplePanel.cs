@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 
-namespace Test.ImageExtend.ImageEx;
+namespace ImageExtend.ImageEx;
 
 //实现控件布局（缩放等）
 
