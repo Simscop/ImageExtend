@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 
-namespace Test.ImageExtend
+namespace ImageExtend
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml

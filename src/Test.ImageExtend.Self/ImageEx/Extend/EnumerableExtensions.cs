@@ -1,7 +1,7 @@
 ﻿//using Lift.UI.Tools.Extension;
 using System.Windows.Data;
 
-namespace Test.ImageExtend.Extension
+namespace ImageExtend.Extension
 {
     public static class EnumerableExtensions
     {

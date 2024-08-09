@@ -1,10 +1,10 @@
 ﻿using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using Test.ImageExtend.Extension;
+using ImageExtend.Extension;
 using InkCanvas = System.Windows.Controls.InkCanvas;
 
-namespace Test.ImageExtend.ImageEx.ShapeEx;
+namespace ImageExtend.ImageEx.ShapeEx;
 
 // todo 线宽改成显示像素，而不是实际宽度
 // todo，初始化多了一个点的绘制

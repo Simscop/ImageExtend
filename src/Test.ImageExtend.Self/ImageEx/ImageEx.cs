@@ -1,4 +1,5 @@
-﻿
+﻿using ImageExtend.Extension;
+using ImageExtend.ImageEx.ShapeEx;
 using Microsoft.Win32;
 using Microsoft.Xaml.Behaviors;
 using System.Collections.ObjectModel;
@@ -10,14 +11,11 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Test.ImageExtend.Extension;
-using Test.ImageExtend.ImageEx.ShapeEx;
-using Test.ImageExtend.Self;
 using Point = System.Windows.Point;
 using Rect = System.Windows.Rect;
 using Size = System.Windows.Size;
 
-namespace Test.ImageExtend.ImageEx;
+namespace ImageExtend.ImageEx;
 
 #region begavior
 

@@ -1,4 +1,4 @@
-﻿namespace Test.ImageExtend.Extension
+﻿namespace ImageExtend.Extension
 {
     public struct EnumeratorWithIndex<T>
     {

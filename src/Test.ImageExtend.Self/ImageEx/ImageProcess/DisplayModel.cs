@@ -1,10 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
-using System.Diagnostics;
 using System.Windows.Media.Imaging;
 
-namespace Test.ImageExtend.Self
+namespace ImageExtend
 {
     public partial class DisplayModel:ObservableObject
     {
