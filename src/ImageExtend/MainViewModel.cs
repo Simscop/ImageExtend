@@ -53,8 +53,8 @@ namespace ImageExtend.ViewModels
                 var paths = new List<string>()
             {
                 //@"C:\\Users\\Administrator\\Desktop\\拉曼-软件资料\\Image\\1_32bit.bmp",
-                //@"C:\\Users\\Administrator\\Desktop\拉曼-软件资料\\Image\\2_24bit.jpg",
-                @"C:\\Users\\Administrator\\Desktop\\拉曼-软件资料\Image\\3_16bit.tif",
+                @"C:\\Users\\Administrator\\Desktop\拉曼-软件资料\\Image\\2_24bit.jpg",
+                //@"C:\\Users\\Administrator\\Desktop\\拉曼-软件资料\Image\\3_16bit.tif",
                 //@"C:\\Users\\Administrator\\Desktop\拉曼-软件资料\\Image\\4_16bit_S.TIF",
             };
                 var _imgs = paths.Select(path => Cv2.ImRead(path)).ToArray();

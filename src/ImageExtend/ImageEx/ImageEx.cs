@@ -191,9 +191,11 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
                 if (e.LeftButton != MouseButtonState.Pressed || e.RightButton == MouseButtonState.Pressed)
                 {
                     var click = e.GetPosition(AssociatedObject.Canvas);
+                    //var imageCurrentPosition = AssociatedObject.ImageCurrentPosition();
+                    var imageCurrentPosition = e.GetPosition(AssociatedObject.Canvas);//直接获取canvas的当前点
                     var pos = CalculateGridPosition(click);
                     AssociatedObject.GridPosition = pos;
-                    Debug.WriteLine($"rect pos_{pos} x_{click.X} y_{click.Y}");
+                    Debug.WriteLine($"rect pos_{pos} x_{imageCurrentPosition.X} y_{imageCurrentPosition.Y} \r\n");
 
                     return;
                 }
@@ -1071,6 +1073,30 @@ public class ImageEx : ContentControl
         //{
         //    //todo，处理矩形数据：保存、计算点击信息、填充表格等
         //};
+    }
+
+    public (int x,int y) ImageCurrentPosition()
+    {
+        Thickness ImageActualMargin = new Thickness((ActualWidth - ImageSource!.Width) / 2, (ActualHeight - ImageSource!.Height) / 2, 0, 0);
+        double ImageActualScale = ImagePanelScale;
+        Point ImageCurrentPoint = Mouse.GetPosition(Canvas);
+        double ImageOriWidth = ImageSource!.Width;
+        double ImageOriHeight = ImageSource!.Height;
+
+        var margin = ImageActualMargin;
+        var scale = ImageActualScale;
+        var pos = ImageCurrentPoint;
+
+        var x = (int)((pos.X - margin.Left) / scale);
+        var y = (int)((pos.Y - margin.Top) / scale);
+
+        Debug.WriteLine($"ImageCurrentPosition  x_{pos.X} y_{pos.Y}");
+        Debug.WriteLine($"ImageActualScale_{ImageActualScale}");
+        Debug.WriteLine($"ImageActualMargin_{ImageActualMargin.ToString()} ");
+
+        //if (x < 0 || x > ImageOriWidth || y < 0 || y > ImageOriHeight) return (-1, -1);
+
+        return (x, y);
     }
 
     /// <summary>
