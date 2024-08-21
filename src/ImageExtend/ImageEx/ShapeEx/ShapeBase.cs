@@ -1,10 +1,10 @@
-﻿using System.Windows;
+﻿using ImageExtend.Extension;
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using ImageExtend.Extension;
 using InkCanvas = System.Windows.Controls.InkCanvas;
 
-namespace ImageExtend.ImageEx.ShapeEx;
+namespace ImageExtend.ShapeEx;
 
 // todo 线宽改成显示像素，而不是实际宽度
 // todo，初始化多了一个点的绘制
@@ -308,11 +308,35 @@ public class PolygonShape : ShapeBase
         }
     }
 
-
-    public void RefreshPolygonPoints(List<Point> points)
+    public void RefreshPolygonPoints(List<Point> drawPoints)
     {
-        Points = points;
-        if (Points.Count > 0) InvalidateVisual();
+        Points = drawPoints;
+        if (Points.Count <= 0) return;
+        InvalidateVisual();
+
+        //if (!isDrawDone)
+        //{
+        //    InvalidateVisual();
+        //}
+        //else
+        //{
+        //    double minX = drawPoints.Min(p => p.X);
+        //    double maxX = drawPoints.Max(p => p.X);
+        //    double minY = drawPoints.Min(p => p.Y);
+        //    double maxY = drawPoints.Max(p => p.Y);
+
+        //    //Width = maxX - minX;
+        //    //Height = maxY - minY;
+
+        //    Width = maxX ;
+        //    Height = maxY ;
+
+        //    //InkCanvas.SetLeft(this, minX);
+        //    //InkCanvas.SetTop(this, minY);
+
+        //    InkCanvas.SetLeft(this, 0);
+        //    InkCanvas.SetTop(this, 0);
+        //}
     }
 
     public override void Draw(InkCanvas canvas)

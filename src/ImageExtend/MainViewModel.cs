@@ -18,12 +18,10 @@ namespace ImageExtend.ViewModels
         (int, int) _fillEndPoint = new();
 
         [ObservableProperty]
-        (int, int) _gridPosition = new();
+        int _gridCol = 0;
 
-        partial void OnGridPositionChanged((int, int) value)
-        {
-            Debug.WriteLine($"OnGridPositionChanged_({value.Item1},{value.Item2})");
-        }
+        [ObservableProperty]
+        int _gridRow = 0;
 
         [RelayCommand]
         void ChangeShow()
@@ -39,15 +37,18 @@ namespace ImageExtend.ViewModels
 
         public MainViewModel()
         {
-            int type = 1;
+            GridCol = 5;
+            GridRow = 10;
+            FillEndPoint = (GridCol, GridRow);//填充颜色的行列
 
+            int type = 1;
             if (type == 0)
             {
                 string file = @"C:\\Users\\Administrator\\Desktop\\拉曼-软件资料\\Image\\3_16bit.tif";
                 Mat mat = Cv2.ImRead(file);
                 DisplayModel.Original = mat;
             }
-            else if (type == 1) 
+            else if (type == 1)
             {
                 //BitmapSource-continuous
                 var paths = new List<string>()

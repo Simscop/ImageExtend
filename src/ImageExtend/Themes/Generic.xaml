@@ -1,8 +1,8 @@
 ﻿<ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:imageEx="clr-namespace:ImageExtend.ImageEx"
-    xmlns:shapeEx="clr-namespace:ImageExtend.ImageEx.ShapeEx">
+    xmlns:imageEx="clr-namespace:ImageExtend"
+    xmlns:shapeEx="clr-namespace:ImageExtend.ShapeEx">
 
     <!--  矩形遮罩标记的定义  -->
     <Style TargetType="imageEx:ImageEx">
@@ -62,10 +62,6 @@
                                                             Command="{x:Static imageEx:ImageEx.ImageProcessCommand}"
                                                             CommandParameter="ImageProcess"
                                                             Header="ImageProcess" />
-                                                        <!--<MenuItem
-                                                            Command="{x:Static imageEx:ImageEx.ImageProcessCommand}"
-                                                            CommandParameter="ResetImageProcess"
-                                                            Header="Reset ImageProcess" />-->
                                                         <MenuItem
                                                             Command="{x:Static imageEx:ImageEx.ImageProcessCommand}"
                                                             CommandParameter="SaveDisplay"
@@ -91,11 +87,6 @@
                                                             Command="{x:Static imageEx:ImageEx.MarkeronImageCommand}"
                                                             CommandParameter="PolygonMarker"
                                                             Header="PolygonMarker" />
-                                                        <Separator />
-                                                        <MenuItem
-                                                            Command="{x:Static imageEx:ImageEx.GetClickMsgCommand}"
-                                                            CommandParameter="GetClickMsg"
-                                                            Header="GetClickMsg" />
                                                     </ContextMenu>
                                                 </Image.ContextMenu>
 

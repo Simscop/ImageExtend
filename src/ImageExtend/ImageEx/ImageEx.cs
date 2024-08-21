@@ -1,5 +1,5 @@
 ﻿using ImageExtend.Extension;
-using ImageExtend.ImageEx.ShapeEx;
+using ImageExtend.ShapeEx;
 using Microsoft.Win32;
 using Microsoft.Xaml.Behaviors;
 using System.Collections.ObjectModel;
@@ -15,7 +15,7 @@ using Point = System.Windows.Point;
 using Rect = System.Windows.Rect;
 using Size = System.Windows.Size;
 
-namespace ImageExtend.ImageEx;
+namespace ImageExtend;
 
 #region begavior
 
@@ -23,7 +23,7 @@ namespace ImageExtend.ImageEx;
 /// 关于浏览相关的行为
 /// 图像缩放&移动
 /// </summary>
-public class ImageExViewerBehavior : Behavior<ImageEx>
+internal class ImageExViewerBehavior : Behavior<ImageEx>
 {
     /// <summary>
     /// 将鼠标滚轮、鼠标移动、鼠标按下和松开的事件绑定到 AssociatedObject 的相关控件
@@ -133,7 +133,7 @@ public class ImageExViewerBehavior : Behavior<ImageEx>
 /// <summary>
 /// 处理在图像上绘制形状的功能
 /// </summary>
-public class ImageExDrawBehavior : Behavior<ImageEx>
+internal class ImageExDrawBehavior : Behavior<ImageEx>
 {
     /// <summary>
     /// 将 Loaded 事件绑定到 AssociatedObject
@@ -159,12 +159,8 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
     {
         AssociatedObject.Canvas!.PreviewMouseMove += OnCanvasPreviewMouseMove;
         AssociatedObject.Canvas!.PreviewMouseDown += OnCanvasPreviewMouseDown;
-        AssociatedObject.Canvas!.MouseLeave += OnCanvasMouseLeave;
+        AssociatedObject.Canvas!.MouseLeave += OnCanvasMouseLeave;    
         AssociatedObject.MainPanel!.PreviewMouseUp += OnCanvasPreviewMouseUp;
-
-        clickTimer = new System.Timers.Timer(DoubleClickTime);
-        clickTimer.Elapsed += ClickTimerElapsed;
-
     }
 
     /// <summary>
@@ -186,21 +182,6 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
 
         if (AssociatedObject.ShapeMarker is RectangleShape)
         {
-            if (AssociatedObject._flagGetClickMsg && AssociatedObject.isMsgExist)
-            {
-                if (e.LeftButton != MouseButtonState.Pressed || e.RightButton == MouseButtonState.Pressed)
-                {
-                    var click = e.GetPosition(AssociatedObject.Canvas);
-                    //var imageCurrentPosition = AssociatedObject.ImageCurrentPosition();
-                    var imageCurrentPosition = e.GetPosition(AssociatedObject.Canvas);//直接获取canvas的当前点
-                    var pos = CalculateGridPosition(click);
-                    AssociatedObject.GridPosition = pos;
-                    Debug.WriteLine($"rect pos_{pos} x_{imageCurrentPosition.X} y_{imageCurrentPosition.Y} \r\n");
-
-                    return;
-                }
-            }
-
             if (!_flagRect) return;
             _flagRect = false;
 
@@ -220,23 +201,12 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
             AssociatedObject.ShapeMarker!.Visibility = Visibility.Visible;
             AssociatedObject.ShapeMarker!.Refresh();
 
-            int horcount = AssociatedObject.GridRow;
-            int vercount= AssociatedObject.GridCol;
-            if (horcount != 0 || vercount != 0)
+            if (AssociatedObject.GridRow != 0 || AssociatedObject.GridCol != 0)
             {
-                var start = AssociatedObject.ShapeMarker!.PointStart;
-                var end = AssociatedObject.ShapeMarker!.PointEnd;
-                double width = Math.Abs(start.X - end.X);
-                double height = Math.Abs(start.Y - end.Y);
-
-                AssociatedObject.ShapeMarker!.Fill = GridFillBrush(width, height);
-
-                //计算点击位置对应行列
-                AssociatedObject.isMsgExist = true;
-                _constrastPoint = AssociatedObject.ShapeMarker!.PointStart;
-                _gridSpacingX = width / vercount;
-                _gridSpacingY = height / horcount;
+                AssociatedObject.ShapeMarker!.Fill =
+                    GridFillBrush(AssociatedObject.ShapeMarker.Width, AssociatedObject.ShapeMarker.Height);
             }
+
         }
         else if (AssociatedObject.ShapeMarker is LineShape)
         {
@@ -275,65 +245,7 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         }
         else if (AssociatedObject.ShapeMarker is PolygonShape)
         {
-            if (AssociatedObject._flagGetClickMsg && AssociatedObject.isMsgExist)
-            {
-                if (e.LeftButton != MouseButtonState.Pressed || e.RightButton == MouseButtonState.Pressed)
-                {
-                    var click = e.GetPosition(AssociatedObject.Canvas);
-                    var pos = CalculateGridPosition(click);
-                    AssociatedObject.GridPosition = pos;
-                    Debug.WriteLine($"poly_pos_{pos} x_{click.X} y_{click.Y}");
-                    return;
-                }
-            }
 
-            _clickCount++;
-            if (_clickCount == 1)
-            {
-                clickTimer?.Start();
-            }
-            else if (_clickCount == 2)
-            {
-                clickTimer?.Stop();
-                _clickCount = 0;
-
-                AssociatedObject.ShapePreviewer!.Visibility = Visibility.Collapsed;
-                AssociatedObject.ShapeMarker!.Visibility = Visibility.Visible;
-
-                if (_plgPoints.Count >= 3)
-                {
-                    var sortsPoints = SortPointsToFormPolygon(_plgPoints);
-                    var polygonMarker = AssociatedObject.ShapeMarker as PolygonShape;
-                    polygonMarker?.RefreshPolygonPoints(sortsPoints);
-
-                    int horcount = AssociatedObject.GridRow;
-                    int vercount = AssociatedObject.GridCol;
-                    if (horcount != 0 || vercount != 0)
-                    {
-                        double minX = sortsPoints.Min(p => p.X);
-                        double maxX = sortsPoints.Max(p => p.X);
-                        double minY = sortsPoints.Min(p => p.Y);
-                        double maxY = sortsPoints.Max(p => p.Y);
-                        double width = maxX - minX;
-                        double height = maxY - minY;
-                        AssociatedObject.ShapeMarker!.Fill = GridFillBrush(width, height);
-
-                        _gridSpacingX = width / vercount;
-                        _gridSpacingY = height / horcount;
-                        _constrastPoint = new Point(minX, minY);
-                        _sortsPoints = sortsPoints;
-                        AssociatedObject.isMsgExist = true;
-                    }
-
-                    _flagPlgReset = true;
-                }
-                else
-                {
-                    _plgPoints.Clear();
-                    AssociatedObject.ShapeMarker!.Visibility = Visibility.Collapsed;
-                    _flagPlgReset = false;
-                }
-            }
         }
     }
 
@@ -349,7 +261,6 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
 
         if (AssociatedObject.ShapeMarker is RectangleShape)
         {
-            if (AssociatedObject._flagGetClickMsg && AssociatedObject.isMsgExist) return;
             if (e.LeftButton == MouseButtonState.Pressed || e.RightButton != MouseButtonState.Pressed) return;
 
             _flagRect = true;
@@ -385,7 +296,7 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         }
         else if (AssociatedObject.ShapeMarker is PolygonShape)
         {
-            if (AssociatedObject._flagGetClickMsg && AssociatedObject.isMsgExist) return;
+            if (!AssociatedObject.isMsgExist) return;
             if (_flagPlgReset) return;
 
             var polygonShape = AssociatedObject.ShapePreviewer as PolygonShape;
@@ -417,7 +328,6 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
 
         if (AssociatedObject.ShapeMarker is RectangleShape)
         {
-            if (AssociatedObject._flagGetClickMsg && AssociatedObject.isMsgExist) return;
             if (e.LeftButton == MouseButtonState.Pressed || e.RightButton != MouseButtonState.Pressed) return;
             AssociatedObject.ShapePreviewer!.PointStart = e.GetPosition(AssociatedObject.Canvas);
         }
@@ -435,7 +345,8 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
         }
         else if (AssociatedObject.ShapeMarker is PolygonShape)
         {
-            if (AssociatedObject._flagGetClickMsg && AssociatedObject.isMsgExist) return;
+            if (!AssociatedObject.isMsgExist) return;
+
             if (e.LeftButton != MouseButtonState.Pressed || e.RightButton == MouseButtonState.Pressed) return;
 
             if (_flagPlgReset)
@@ -454,6 +365,37 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
 
             _flagPlg = true;
             _flagPlgReset = false;
+
+            //双击实现多边形闭环
+            if (e.ClickCount == 2)
+            {
+                AssociatedObject.ShapePreviewer!.Visibility = Visibility.Collapsed;
+                AssociatedObject.ShapeMarker!.Visibility = Visibility.Visible;
+
+                if (_plgPoints.Count >= 3)
+                {
+                    var sortsPoints = SortPointsToFormPolygon(_plgPoints);
+                    var polygonMarker = AssociatedObject.ShapeMarker as PolygonShape;
+                    polygonMarker?.RefreshPolygonPoints(sortsPoints);
+
+                    if (AssociatedObject.GridRow != 0 || AssociatedObject.GridCol != 0)
+                    {
+                        double width = sortsPoints.Max(p => p.X) - sortsPoints.Min(p => p.X);
+                        double height = sortsPoints.Max(p => p.Y) - sortsPoints.Min(p => p.Y);
+                        AssociatedObject.ShapeMarker!.Fill = GridFillBrush(width, height);
+
+                    }
+
+                    _flagPlgReset = true;
+                    AssociatedObject.isMsgExist = false;
+                }
+                else
+                {
+                    _plgPoints.Clear();
+                    AssociatedObject.ShapeMarker!.Visibility = Visibility.Collapsed;
+                    _flagPlgReset = false;
+                }
+            }
         }
     }
 
@@ -463,28 +405,7 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
     private bool _flagPoint = false;
     private bool _flagPlg = false;
     private bool _flagPlgReset = false;
-    private int _clickCount = 0;
-    private const int DoubleClickTime = 200;
-    private System.Timers.Timer? clickTimer;
     private readonly List<Point> _plgPoints= new();
-
-    static double _gridSpacingX = 0;
-    static double _gridSpacingY = 0;//网格间隔
-    static Point _constrastPoint = new();//点基准位置
-    static List<Point> _sortsPoints = new();//形成多边形的点集合
-
-
-    /// <summary>
-    /// 多边形
-    /// 添加双击事件
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
-    private void ClickTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
-    {
-        clickTimer?.Stop();
-        _clickCount = 0;
-    }
 
     /// <summary>
     /// 验证鼠标位置是否在画布范围内
@@ -627,33 +548,6 @@ public class ImageExDrawBehavior : Behavior<ImageEx>
     }
 
     /// <summary>
-    /// 根据点击位置计算网格位置
-    /// col-x;row-y
-    /// </summary>
-    /// <param name="clickPosition"></param>
-    /// <param name="gridSpacingX"></param>
-    /// <param name="gridSpacingY"></param>
-    /// <param name="constrastPoint"></param>
-    /// <returns></returns>
-    private (int x, int y) CalculateGridPosition(Point clickPosition)
-    {
-        int horCount = AssociatedObject.GridRow;
-        int verCount = AssociatedObject.GridCol;
-
-        if (_gridSpacingX == 0 || _gridSpacingY == 0) return (-1, -1);
-        int row = (int)Math.Floor((clickPosition.Y - _constrastPoint.Y) / _gridSpacingY) + 1;
-        int column = (int)Math.Floor((clickPosition.X - _constrastPoint.X) / _gridSpacingX) + 1;
-
-        bool isPointInPolygon = IsPointInPolygon(_sortsPoints, clickPosition);
-        if (AssociatedObject.ShapeMarker is RectangleShape) isPointInPolygon = true;
-
-        if ((row > horCount || row <= 0) || (column > verCount || column <= 0) || !isPointInPolygon)
-            return (-1, -1);
-
-        return (column, row);
-    }
-
-    /// <summary>
     /// 判断是否在roi内——射线投射法
     /// </summary>
     /// <param name="polygonPoints"></param>
@@ -773,6 +667,12 @@ public class ImageEx : ContentControl
     /// 多边形标记
     /// </summary>
     public const string PolygonMarker = "PolygonMarker";
+
+    /// <summary>
+    /// 多边形限制
+    /// 单次只能绘制一个多边形
+    /// </summary>
+    public bool isMsgExist=false;
 
     /// <summary>
     /// 标记命令
@@ -905,16 +805,6 @@ public class ImageEx : ContentControl
 
     #endregion
 
-    #region GetClickMsgCommand
-
-    public static readonly RoutedUICommand GetClickMsgCommand = new();
-
-    public bool _flagGetClickMsg = false;
-
-    public bool isMsgExist = false;
-
-    #endregion
-
     #region Events-定义标记变化和光标变化的事件
 
     public Action<Rect>? OnRectMarkderChanged;//todo，保存信息、处理对应数据
@@ -957,7 +847,7 @@ public class ImageEx : ContentControl
         _behaviors.Add(new ImageExViewerBehavior());
         _behaviors.Add(new ImageExDrawBehavior());
 
-        //标记上蒙版右键菜单
+        //标记上蒙版右键菜单-delete/zoom/acquire
         CommandBindings.Add(new CommandBinding(MarkerCommand, (obj, args) =>
         {
             if (args.Parameter is not string command || ShapeMarker is null) return;
@@ -1007,7 +897,8 @@ public class ImageEx : ContentControl
             if (ShapeMarker != null)
                 ShapeCollection = new() { ShapeMarker };
 
-            _flagGetClickMsg = false;
+            isMsgExist = true;
+
         }));
 
         //图像处理
@@ -1063,40 +954,6 @@ public class ImageEx : ContentControl
             }
         }));
 
-        //获取点击信息
-        CommandBindings.Add(new CommandBinding(GetClickMsgCommand, (obj, args) =>
-        {
-            _flagGetClickMsg=true;
-        }));
-
-        //OnRectMarkderChanged += rect =>
-        //{
-        //    //todo，处理矩形数据：保存、计算点击信息、填充表格等
-        //};
-    }
-
-    public (int x,int y) ImageCurrentPosition()
-    {
-        Thickness ImageActualMargin = new Thickness((ActualWidth - ImageSource!.Width) / 2, (ActualHeight - ImageSource!.Height) / 2, 0, 0);
-        double ImageActualScale = ImagePanelScale;
-        Point ImageCurrentPoint = Mouse.GetPosition(Canvas);
-        double ImageOriWidth = ImageSource!.Width;
-        double ImageOriHeight = ImageSource!.Height;
-
-        var margin = ImageActualMargin;
-        var scale = ImageActualScale;
-        var pos = ImageCurrentPoint;
-
-        var x = (int)((pos.X - margin.Left) / scale);
-        var y = (int)((pos.Y - margin.Top) / scale);
-
-        Debug.WriteLine($"ImageCurrentPosition  x_{pos.X} y_{pos.Y}");
-        Debug.WriteLine($"ImageActualScale_{ImageActualScale}");
-        Debug.WriteLine($"ImageActualMargin_{ImageActualMargin.ToString()} ");
-
-        //if (x < 0 || x > ImageOriWidth || y < 0 || y > ImageOriHeight) return (-1, -1);
-
-        return (x, y);
     }
 
     /// <summary>
@@ -1168,6 +1025,115 @@ public class ImageEx : ContentControl
                 throw new NotImplementedException("Not Valid Command!");
         }
         return name;
+    }
+
+    /// <summary>
+    /// 图像像素位置
+    /// </summary>
+    public (int x, int y) ImageCurrentPosition
+    {
+        get
+        {
+            var pos = Mouse.GetPosition(Canvas);
+            return ((int)pos.X, (int)pos.Y);
+        }
+    }
+
+    /// <summary>
+    /// 网格行列
+    /// </summary>
+    public (int x, int y) GridCurrentPos
+    {
+        get
+        {
+            if (GridRow == 0 || GridCol == 0) return (-1, -1);
+
+            List<Point> sortsPoints = new();
+            Point _constrastPoint = new();
+            double width = 0;
+            double height = 0;
+            if (ShapeMarker is PolygonShape)
+            {
+                var polygonMarker = ShapeMarker as PolygonShape;
+                sortsPoints = SortPointsToFormPolygon(polygonMarker?.Points!);
+                double minX = sortsPoints.Min(p => p.X);
+                double maxX = sortsPoints.Max(p => p.X);
+                double minY = sortsPoints.Min(p => p.Y);
+                double maxY = sortsPoints.Max(p => p.Y);
+                _constrastPoint = new Point(minX, minY);
+                width = maxX - minX;
+                height = maxY - minY;
+            }
+            else if (ShapeMarker is RectangleShape)
+            {
+                width = ShapeMarker!.ActualWidth;
+                height = ShapeMarker!.ActualHeight;
+                _constrastPoint = ShapeMarker!.PointStart;
+            }
+            else
+            {
+                return (-1, -1);
+            }
+
+            double _gridSpacingX = width / GridCol;
+            double _gridSpacingY = height / GridRow;
+            if (_gridSpacingX == 0 || _gridSpacingY == 0) return (-1, -1);
+
+            var currentPos = Mouse.GetPosition(Canvas);
+            int row = (int)Math.Floor((currentPos.Y - _constrastPoint.Y) / _gridSpacingY) + 1;
+            int column = (int)Math.Floor((currentPos.X - _constrastPoint.X) / _gridSpacingX) + 1;
+
+            bool isPointInPolygon = true;
+            if (ShapeMarker is PolygonShape)
+                isPointInPolygon = IsPointInPolygon(sortsPoints, currentPos);
+
+            if ((row > GridRow || row <= 0) || (column > GridCol || column <= 0) || !isPointInPolygon)
+                return (-1, -1);
+
+            return (column, row);
+        }
+    }
+
+    private List<Point> SortPointsToFormPolygon(List<Point> points)
+    {
+        if (points == null || points.Count < 3)
+        {
+            throw new ArgumentException("多边形必须至少有三个点。");
+        }
+
+        // 找到最低且最左的点作为参考点
+        Point referencePoint = points.OrderBy(p => p.Y).ThenBy(p => p.X).First();
+
+        // 按照与参考点的极角排序
+        List<Point> sortedPoints = points.OrderBy(p => Math.Atan2(p.Y - referencePoint.Y, p.X - referencePoint.X)).ToList();
+
+        return sortedPoints;
+    }
+
+    private bool IsPointInPolygon(List<Point> polygonPoints, Point testPoint)
+    {
+        int numPoints = polygonPoints.Count;
+        bool isInside = false;
+
+        // 遍历多边形的所有边
+        for (int i = 0, j = numPoints - 1; i < numPoints; j = i++)
+        {
+            var pointI = polygonPoints[i];
+            var pointJ = polygonPoints[j];
+
+            // 判断测试点是否在多边形边的两端点的Y坐标之间
+            bool isYInRange = ((pointI.Y > testPoint.Y) != (pointJ.Y > testPoint.Y));
+
+            // 计算射线是否穿过多边形的边
+            bool isXOnRay = (testPoint.X < (pointJ.X - pointI.X) * (testPoint.Y - pointI.Y) / (pointJ.Y - pointI.Y) + pointI.X);
+
+            if (isYInRange && isXOnRay)
+            {
+                isInside = !isInside;
+            }
+        }
+
+        return isInside;
     }
 
     #region 依赖属性
@@ -1302,17 +1268,6 @@ public class ImageEx : ContentControl
         set => SetValue(GridFillColorProperty, value);
     }
 
-    public static readonly DependencyProperty GridPositionProperty = DependencyProperty.RegisterAttached(
-    nameof(GridPosition), typeof((int, int)), typeof(ImageEx), new PropertyMetadata((0, 0)));
-
-    public (int, int) GridPosition
-    {
-        get => ((int, int))GetValue(GridPositionProperty);
-        set => SetValue(GridPositionProperty, value);
-
-        //todo,向外传输pos
-    }
-
     public static readonly DependencyProperty FillEndPointProperty = DependencyProperty.RegisterAttached(
     nameof(FillEndPoint), typeof((int, int)), typeof(ImageEx), new PropertyMetadata((0, 0), OnFillEndPointChanged));
 
@@ -1351,7 +1306,7 @@ public class ImageEx : ContentControl
         if (ex.Box is null) return;
 
         ex.Box.Height = ex.DefaultImageSize.Height * ex.ImagePanelScale;
-        ex.Box.Height = ex.DefaultImageSize.Height * ex.ImagePanelScale;
+        ex.Box.Width = ex.DefaultImageSize.Width * ex.ImagePanelScale;
     }
 
     [Browsable(true)]
